@@ -114,7 +114,7 @@
 | 📝 新需求 | Superpowers 全流程 | 完整 brainstorm → plan → execute |
 | 🔧 修 Bug | 快速修复 | 直接 execute |
 | ♻️ 改方案 | 重构优化 | brainstorm → execute |
-| 📎 上传 | Superpowers | 选择文件，内容作为需求描述 |
+| 📎 上传 | Superpowers | 浏览器文件选择器上传本地文件（非项目文件树），内容作为需求描述 |
 
 ### 输入行为
 - 自然语言输入 + Enter 提交
@@ -207,7 +207,7 @@ src/
 3. **搬右面板**：TaskDetail → RightPanel，拆出 StageCard，加 Issues tab
 4. **加左侧 + 底部**：FileTree + BottomBar，删除旧组件
 
-每步都保持可运行。
+每步独立提交，每步都保持可运行。
 
 ## 10. 后端新增接口
 
@@ -246,4 +246,5 @@ src/
 - 不做 Git 仓库引入 Skill（Phase 2）
 - 不做任务筛选/排序（后续增强）
 - 不做快捷键（后续增强）
-- 不做代码语法高亮库（Phase 1 用 `<pre>` 展示，后续加 Shiki/Prism）
+- 不做代码语法高亮库（Phase 1 用 `<pre>` 展示，后续加 Shiki/Prism）。FileViewer 组件预留 `language` prop 方便后续接入
+- Issues 不需要独立 GET 接口，始终通过 Task 对象的 `issues` 字段获取
