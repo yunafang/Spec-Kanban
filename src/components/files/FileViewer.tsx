@@ -49,10 +49,10 @@ export default function FileViewer({ filePath, language }: FileViewerProps) {
     fetch(`/api/files/content?path=${encodeURIComponent(filePath)}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.text()
+        return res.json()
       })
-      .then((content) => {
-        setFileInfo({ content, size: new Blob([content]).size })
+      .then((data) => {
+        setFileInfo({ content: data.content, size: data.size || 0 })
         setLoading(false)
       })
       .catch((err) => {

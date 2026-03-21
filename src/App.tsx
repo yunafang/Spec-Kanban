@@ -98,7 +98,14 @@ export default function App() {
           {selectedFile ? (
             <>
               <div className="flex items-center gap-2 px-4 py-1.5 border-b border-gray-800 bg-gray-900/60 shrink-0">
-                <span className="text-xs text-gray-400 flex-1 truncate">📄 {selectedFile}</span>
+                <span className="text-xs text-gray-400 flex-1 truncate font-mono">
+                  {selectedFile.split('/').map((seg, i, arr) => (
+                    <span key={i}>
+                      {i > 0 && <span className="text-gray-600 mx-0.5">/</span>}
+                      <span className={i === arr.length - 1 ? 'text-gray-200' : ''}>{seg}</span>
+                    </span>
+                  ))}
+                </span>
                 <button
                   onClick={() => selectFile(null)}
                   className="text-xs text-gray-500 hover:text-gray-300 cursor-pointer px-2 py-0.5 rounded hover:bg-gray-800"
