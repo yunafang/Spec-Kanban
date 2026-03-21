@@ -4,6 +4,10 @@ import { useConfigStore } from '@/store/configStore'
 import { useUiStore } from '@/store/uiStore'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import ResizeHandle from '@/components/layout/ResizeHandle'
+import Sidebar from '@/components/layout/Sidebar'
+import TaskTable from '@/components/layout/TaskTable'
+import RightPanel from '@/components/layout/RightPanel'
+import BottomBar from '@/components/layout/BottomBar'
 import type { Task, WsMessage } from '@/types'
 
 const isDemo = import.meta.env.VITE_DEMO === 'true'
@@ -81,16 +85,16 @@ export default function App() {
         {/* Left sidebar */}
         <aside
           style={{ width: sidebarWidth }}
-          className="shrink-0 border-r border-gray-800 bg-gray-900/50 flex items-center justify-center overflow-hidden"
+          className="shrink-0 border-r border-gray-800 bg-gray-900/50 overflow-hidden"
         >
-          <span className="text-sm text-gray-500">Sidebar</span>
+          <Sidebar />
         </aside>
 
         <ResizeHandle onResize={(delta) => setSidebarWidth(sidebarWidth + delta)} />
 
         {/* Center panel */}
-        <main className="flex-1 flex items-center justify-center overflow-hidden">
-          <span className="text-sm text-gray-500">Task Table</span>
+        <main className="flex-1 overflow-hidden">
+          <TaskTable />
         </main>
 
         <ResizeHandle onResize={(delta) => setRightPanelWidth(rightPanelWidth - delta)} />
@@ -98,16 +102,14 @@ export default function App() {
         {/* Right panel */}
         <aside
           style={{ width: rightPanelWidth }}
-          className="shrink-0 border-l border-gray-800 bg-gray-900/50 flex items-center justify-center overflow-hidden"
+          className="shrink-0 border-l border-gray-800 bg-gray-900/50 overflow-hidden"
         >
-          <span className="text-sm text-gray-500">Right Panel</span>
+          <RightPanel />
         </aside>
       </div>
 
       {/* Bottom bar */}
-      <footer className="h-10 border-t border-gray-800 bg-gray-900/80 flex items-center justify-center shrink-0">
-        <span className="text-sm text-gray-500">Bottom Bar</span>
-      </footer>
+      <BottomBar />
     </div>
   )
 }
