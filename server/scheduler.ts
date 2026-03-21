@@ -223,6 +223,7 @@ export async function advanceTask(taskId: string, action: string, feedback?: str
             children: [],
             title: sub.title,
             description: sub.description,
+            projectName: task.projectName || '',
             skillId: task.skillId || 'superpowers',
             status: 'inbox',
             humanAction: null,

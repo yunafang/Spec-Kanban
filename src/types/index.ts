@@ -33,6 +33,7 @@ export interface Task {
   children: string[]
   title: string
   description: string
+  projectName: string
   skillId: string
   status: TaskStatus
   previousStatus?: TaskStatus

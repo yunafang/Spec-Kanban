@@ -79,6 +79,7 @@ router.get('/api/tasks', (_req, res) => {
 // POST /api/tasks
 router.post('/api/tasks', (req, res) => {
   const { title, description, skillId } = req.body
+  const config = readConfig()
   const tasks = readTasks()
   const task: Task = {
     id: `task_${nanoid(8)}`,
@@ -86,6 +87,7 @@ router.post('/api/tasks', (req, res) => {
     children: [],
     title,
     description,
+    projectName: config.activeProject || '',
     skillId: skillId || 'superpowers',
     status: 'inbox',
     humanAction: null,
@@ -379,6 +381,42 @@ router.get('/api/browse', (req, res) => {
   } catch {
     res.json({ path: resolved, dirs: [], isGit: false })
   }
+})
+
+// GET /api/project/scan — scan active project for superpowers data
+router.get('/api/project/scan', (req, res) => {
+  const config = readConfig()
+  const project = config.projects.find(p => p.name === config.activeProject)
+  if (!project) { res.json({ specs: [], plans: [] }); return }
+
+  const specs: { name: string; path: string; date: string }[] = []
+  const plans: { name: string; path: string; date: string }[] = []
+
+  const specsDir = path.join(project.path, 'docs/superpowers/specs')
+  if (fs.existsSync(specsDir)) {
+    for (const file of fs.readdirSync(specsDir).filter(f => f.endsWith('.md'))) {
+      const dateMatch = file.match(/^(\d{4}-\d{2}-\d{2})/)
+      specs.push({
+        name: file.replace(/\.md$/, '').replace(/^\d{4}-\d{2}-\d{2}-/, ''),
+        path: `docs/superpowers/specs/${file}`,
+        date: dateMatch?.[1] || ''
+      })
+    }
+  }
+
+  const plansDir = path.join(project.path, 'docs/superpowers/plans')
+  if (fs.existsSync(plansDir)) {
+    for (const file of fs.readdirSync(plansDir).filter(f => f.endsWith('.md'))) {
+      const dateMatch = file.match(/^(\d{4}-\d{2}-\d{2})/)
+      plans.push({
+        name: file.replace(/\.md$/, '').replace(/^\d{4}-\d{2}-\d{2}-/, ''),
+        path: `docs/superpowers/plans/${file}`,
+        date: dateMatch?.[1] || ''
+      })
+    }
+  }
+
+  res.json({ specs, plans })
 })
 
 export default router
