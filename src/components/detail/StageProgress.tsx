@@ -19,8 +19,8 @@ export function guessStage(task: Task): string {
   if (task.humanAction === 'confirm_plan') return 'planning'
   if (task.humanAction === 'confirm_merge') return 'executing'
   if (task.humanAction === 'confirm_split') return 'brainstorm'
-  if (task.artifacts.plan) return 'planning'
-  if (task.artifacts.design) return 'brainstorm'
+  if (task.artifacts?.plan) return 'planning'
+  if (task.artifacts?.design) return 'brainstorm'
   return 'inbox'
 }
 

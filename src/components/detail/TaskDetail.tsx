@@ -43,8 +43,8 @@ function HumanActionPanel({ task, feedback, setFeedback, onAction }: {
 
   // Determine which artifact to show
   const artifactPath =
-    task.humanAction === 'confirm_design' ? task.artifacts.design :
-    task.humanAction === 'confirm_plan' ? task.artifacts.plan :
+    task.humanAction === 'confirm_design' ? task.artifacts?.design :
+    task.humanAction === 'confirm_plan' ? task.artifacts?.plan :
     null
 
   const actionLabel =
@@ -329,10 +329,10 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
       </details>
 
       {/* History */}
-      {task.history.length > 0 && (
+      {(task.history?.length || 0) > 0 && (
         <div className="mt-4">
           <h3 className="text-sm font-semibold text-gray-400 mb-2">历史</h3>
-          {task.history.map((h, i) => (
+          {(task.history || []).map((h, i) => (
             <div key={i} className="text-xs text-gray-500 mb-1">
               {h.at.slice(0, 16)} — {h.action} (v{h.fromVersion}) {h.reason && `— ${h.reason}`}
             </div>
@@ -341,7 +341,7 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
       )}
 
       {/* Children tasks */}
-      {task.children.length > 0 && (
+      {(task.children?.length || 0) > 0 && (
         <div className="mt-4">
           <h3 className="text-sm font-semibold text-gray-400 mb-2">子任务</h3>
           <ChildTasks parentId={task.id} />
