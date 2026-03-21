@@ -33,7 +33,8 @@ export function spawnClaude(
   const proc = execa('claude', args, {
     cwd: projectDir,
     reject: false,
-    timeout: options?.timeoutMs ?? 10 * 60 * 1000
+    timeout: options?.timeoutMs ?? 10 * 60 * 1000,
+    stdin: 'ignore'
   })
 
   activeProcesses.set(task.id, proc)
