@@ -44,9 +44,26 @@ export interface Task {
   progress: TaskProgress
   artifacts: TaskArtifacts
   history: TaskHistoryEntry[]
+  issues: TaskIssue[]
   createdAt: string
   startedAt: string | null
   completedAt: string | null
+}
+
+export interface TaskIssue {
+  id: string
+  stage: string
+  content: string
+  status: 'open' | 'resolved'
+  createdAt: string
+  resolvedAt: string | null
+}
+
+export interface FileNode {
+  name: string
+  path: string
+  type: 'file' | 'directory'
+  children?: FileNode[]
 }
 
 export interface SkillStage {
