@@ -13,6 +13,78 @@ const statusLabels: Record<string, string> = {
   executing: 'Executing', needs_human: '需人工', done: '完成'
 }
 
+const stages = [
+  { key: 'inbox', label: '待处理', icon: '📥' },
+  { key: 'brainstorm', label: 'Brainstorm', icon: '💡' },
+  { key: 'planning', label: 'Planning', icon: '📝' },
+  { key: 'executing', label: 'Executing', icon: '🚀' },
+  { key: 'done', label: '完成', icon: '✅' },
+] as const
+
+function getStageIndex(status: string): number {
+  // needs_human maps to the stage it was in before
+  const idx = stages.findIndex((s) => s.key === status)
+  return idx >= 0 ? idx : 1 // needs_human defaults to brainstorm position
+}
+
+function StageProgress({ task }: { task: Task }) {
+  const currentStatus = task.status === 'needs_human' ? (task.previousStatus || guessStage(task)) : task.status
+  const currentIdx = getStageIndex(currentStatus)
+  const isBlocked = task.status === 'needs_human'
+
+  return (
+    <div className="mb-5 p-3 bg-gray-800/50 rounded-lg">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-semibold text-gray-400">流程进度</span>
+        {isBlocked && (
+          <span className="text-xs text-amber-400 animate-pulse">⏸ 等待人工处理</span>
+        )}
+      </div>
+      <div className="flex items-center gap-1">
+        {stages.map((stage, i) => {
+          const isPast = i < currentIdx
+          const isCurrent = i === currentIdx
+          const isFuture = i > currentIdx
+
+          return (
+            <div key={stage.key} className="flex items-center flex-1">
+              {/* Node */}
+              <div className={`flex flex-col items-center flex-1 ${isFuture ? 'opacity-30' : ''}`}>
+                <div className={`
+                  w-8 h-8 rounded-full flex items-center justify-center text-sm
+                  ${isPast ? 'bg-emerald-600' : ''}
+                  ${isCurrent && !isBlocked ? 'bg-indigo-600 ring-2 ring-indigo-400 ring-offset-1 ring-offset-gray-900' : ''}
+                  ${isCurrent && isBlocked ? 'bg-amber-600 ring-2 ring-amber-400 ring-offset-1 ring-offset-gray-900' : ''}
+                  ${isFuture ? 'bg-gray-700' : ''}
+                `}>
+                  {isPast ? '✓' : stage.icon}
+                </div>
+                <span className={`text-[10px] mt-1 ${isCurrent ? 'text-white font-semibold' : 'text-gray-500'}`}>
+                  {stage.label}
+                </span>
+              </div>
+              {/* Connector line */}
+              {i < stages.length - 1 && (
+                <div className={`h-0.5 w-full -mt-4 ${i < currentIdx ? 'bg-emerald-600' : 'bg-gray-700'}`} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function guessStage(task: Task): string {
+  if (task.humanAction === 'confirm_design') return 'brainstorm'
+  if (task.humanAction === 'confirm_plan') return 'planning'
+  if (task.humanAction === 'confirm_merge') return 'executing'
+  if (task.humanAction === 'confirm_split') return 'brainstorm'
+  if (task.artifacts.plan) return 'planning'
+  if (task.artifacts.design) return 'brainstorm'
+  return 'inbox'
+}
+
 export default function TaskDetail({ task: initialTask, onClose }: TaskDetailProps) {
   const [feedback, setFeedback] = useState('')
   // Get live task from store
@@ -47,6 +119,8 @@ export default function TaskDetail({ task: initialTask, onClose }: TaskDetailPro
           <h3 className="text-sm font-semibold text-gray-400 mb-1">描述</h3>
           <p className="text-sm text-gray-300 whitespace-pre-wrap">{task.description}</p>
         </div>
+
+        <StageProgress task={task} />
 
         {task.branch && (
           <div className="mb-4 text-xs text-gray-500">
