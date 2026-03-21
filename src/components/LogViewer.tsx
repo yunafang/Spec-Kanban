@@ -140,20 +140,32 @@ export default function LogViewer({ taskId }: LogViewerProps) {
 
   return (
     <div>
-      <div className="flex items-center justify-end mb-2">
+      {/* Tab switcher */}
+      <div className="flex items-center gap-1 mb-2 bg-gray-800 rounded-lg p-0.5 w-fit">
         <button
-          onClick={() => setShowRaw(!showRaw)}
-          className="text-[10px] text-gray-600 hover:text-gray-400 cursor-pointer"
+          onClick={() => setShowRaw(false)}
+          className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors ${
+            !showRaw ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-gray-200'
+          }`}
         >
-          {showRaw ? '← 可读视图' : '原始日志'}
+          📋 可读日志
+        </button>
+        <button
+          onClick={() => setShowRaw(true)}
+          className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors ${
+            showRaw ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          {'{ }'} JSON 日志
         </button>
       </div>
+
       <div
         ref={containerRef}
-        className="bg-gray-950 rounded-lg p-4 max-h-72 overflow-y-auto"
+        className="bg-gray-950 rounded-lg p-4 max-h-80 overflow-y-auto"
       >
         {showRaw ? (
-          <pre className="text-xs font-mono text-gray-400 whitespace-pre-wrap">{raw}</pre>
+          <pre className="text-xs font-mono text-green-400/80 whitespace-pre-wrap leading-relaxed">{raw}</pre>
         ) : blocks.length === 0 ? (
           <p className="text-xs text-gray-600">正在处理中...</p>
         ) : (
