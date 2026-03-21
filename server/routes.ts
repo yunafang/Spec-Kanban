@@ -431,12 +431,27 @@ router.post('/api/project/scan', (req, res) => {
 
     const hasPlan = plansMap.has(key)
 
-    // Determine status based on what documents exist
-    let status: string = 'needs_human'
-    let humanAction: string | null = 'confirm_design'
+    // Determine status: docs exist = stages already confirmed
+    // Spec exists → brainstorm done. Plan exists → planning done.
+    // Both exist → ready to execute (or already executing)
+    let status: string
+    let humanAction: string | null
+    let progress: { current: number; total: number }
+
     if (hasPlan) {
+      // Both spec and plan exist → planning is done, ready to execute
       status = 'needs_human'
-      humanAction = 'confirm_plan'
+      humanAction = 'confirm_merge' // Skips to execution confirmation
+      progress = { current: 2, total: 3 }
+      // Actually more accurate: set to executing or inbox for next run
+      status = 'inbox' // Will be picked up by scheduler to execute
+      humanAction = null
+      progress = { current: 2, total: 3 }
+    } else {
+      // Only spec exists → brainstorm done, needs planning
+      status = 'needs_human'
+      humanAction = 'confirm_design'
+      progress = { current: 1, total: 3 }
     }
 
     const task: Task = {
@@ -453,7 +468,7 @@ router.post('/api/project/scan', (req, res) => {
       branch: null,
       merged: false,
       version: 1,
-      progress: { current: hasPlan ? 2 : 1, total: 3 },
+      progress,
       artifacts: {
         design: spec.specPath,
         ...(hasPlan ? { plan: plansMap.get(key)!.planPath } : {})
