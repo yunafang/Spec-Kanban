@@ -144,6 +144,15 @@ function HumanActionPanel({ task, feedback, setFeedback, onAction }: {
           >
             取消
           </button>
+          <button
+            onClick={() => {
+              const uiStore = useUiStore.getState()
+              uiStore.setRightTab('issues')
+            }}
+            className="px-3 py-1.5 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 rounded-lg text-xs font-medium cursor-pointer"
+          >
+            💬 提 Issue
+          </button>
         </div>
       </div>
     </div>
@@ -174,6 +183,26 @@ function MarkdownInline({ content }: { content: string }) {
         prose-td:border-gray-800 prose-td:px-2 prose-td:py-1"
       dangerouslySetInnerHTML={{ __html: html }}
     />
+  )
+}
+
+function CodeDiff({ taskId, branch }: { taskId: string; branch: string }) {
+  const [diff, setDiff] = useState('')
+
+  useEffect(() => {
+    fetch(`/api/tasks/${taskId}/diff`)
+      .then((r) => r.json())
+      .then((d) => setDiff(d.diff || ''))
+      .catch(() => {})
+  }, [taskId])
+
+  if (!diff) return null
+
+  return (
+    <div className="mb-4">
+      <h3 className="text-sm font-semibold text-gray-400 mb-2">代码变更</h3>
+      <pre className="text-xs font-mono text-gray-300 bg-gray-950 rounded-lg p-3 whitespace-pre-wrap max-h-48 overflow-y-auto">{diff}</pre>
+    </div>
   )
 }
 
@@ -272,6 +301,11 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
       {/* Output files — for completed/executing tasks */}
       {task.status === 'done' && (
         <OutputFiles taskId={task.id} />
+      )}
+
+      {/* Code diff — for completed tasks with a branch */}
+      {task.status === 'done' && task.branch && (
+        <CodeDiff taskId={task.id} branch={task.branch} />
       )}
 
       {/* Human action — with artifact preview */}

@@ -1,5 +1,23 @@
 import type { TaskIssue } from '@/types'
 
+const stageIcons: Record<string, string> = {
+  brainstorm: '💡',
+  planning: '📝',
+  executing: '🚀',
+}
+
+const stageColors: Record<string, string> = {
+  brainstorm: 'bg-amber-500/20 text-amber-400',
+  planning: 'bg-indigo-500/20 text-indigo-400',
+  executing: 'bg-emerald-500/20 text-emerald-400',
+}
+
+const stageLabels: Record<string, string> = {
+  brainstorm: 'Brainstorm',
+  planning: 'Planning',
+  executing: 'Executing',
+}
+
 interface IssueListProps {
   taskId: string
   issues: TaskIssue[]
@@ -26,7 +44,9 @@ export default function IssueList({ taskId, issues }: IssueListProps) {
             <span className={`text-[10px] px-1.5 py-0.5 rounded ${issue.status === 'open' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
               {issue.status === 'open' ? '开放' : '已解决'}
             </span>
-            <span className="text-[10px] text-gray-500">{issue.stage}</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded ${stageColors[issue.stage] || 'bg-gray-600/20 text-gray-400'}`}>
+              {stageIcons[issue.stage] || '📌'} {stageLabels[issue.stage] || issue.stage}
+            </span>
             <span className="text-[10px] text-gray-600 ml-auto">{new Date(issue.createdAt).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
           </div>
           <div className="text-sm text-gray-300">{issue.content}</div>

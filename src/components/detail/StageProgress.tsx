@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { marked } from 'marked'
 import type { Task } from '@/types'
 
 const stages = [
@@ -38,6 +39,7 @@ export default function StageProgress({ task }: { task: Task }) {
   const isBlocked = task.status === 'needs_human'
   const [selectedStage, setSelectedStage] = useState<number | null>(null)
   const [previewContent, setPreviewContent] = useState<string | null>(null)
+  const [artifactPath, setArtifactPath] = useState<string | null>(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
 
   const handleStageClick = async (i: number) => {
@@ -52,19 +54,23 @@ export default function StageProgress({ task }: { task: Task }) {
     if (selectedStage === i) {
       setSelectedStage(null)
       setPreviewContent(null)
+      setArtifactPath(null)
       return
     }
 
     setSelectedStage(i)
     setPreviewContent(null)
+    setArtifactPath(null)
 
     // Load preview content based on stage
     if (stage.artifactKey && task.artifacts[stage.artifactKey]) {
+      const artPath = task.artifacts[stage.artifactKey]!
+      setArtifactPath(artPath)
       setLoadingPreview(true)
       try {
-        const res = await fetch(`/api/artifacts/${encodeURIComponent(task.artifacts[stage.artifactKey]!)}`)
-        const text = await res.text()
-        setPreviewContent(text)
+        const res = await fetch(`/api/files/content?path=${encodeURIComponent(artPath)}`)
+        const data = await res.json()
+        setPreviewContent(data.content || '无法加载预览')
       } catch {
         setPreviewContent('无法加载预览')
       }
@@ -156,14 +162,45 @@ export default function StageProgress({ task }: { task: Task }) {
           {loadingPreview ? (
             <div className="text-xs text-gray-500 animate-pulse">加载中...</div>
           ) : previewContent ? (
-            <div className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
-              {previewContent}
-            </div>
+            artifactPath?.endsWith('.md') ? (
+              <StageMarkdown content={previewContent} />
+            ) : (
+              <div className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+                {previewContent}
+              </div>
+            )
           ) : (
             <div className="text-xs text-gray-600">该阶段暂无产出</div>
           )}
         </div>
       )}
     </div>
+  )
+}
+
+/** Markdown renderer for stage artifact preview */
+function StageMarkdown({ content }: { content: string }) {
+  const html = useMemo(() => {
+    marked.setOptions({ breaks: true, gfm: true })
+    return marked.parse(content) as string
+  }, [content])
+
+  return (
+    <div
+      className="prose prose-invert prose-sm max-w-none max-h-64 overflow-y-auto
+        prose-headings:text-gray-100 prose-headings:border-b prose-headings:border-gray-800/30 prose-headings:pb-1
+        prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
+        prose-p:text-gray-300 prose-p:leading-relaxed prose-p:text-xs
+        prose-a:text-indigo-400
+        prose-strong:text-gray-200
+        prose-code:text-indigo-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px]
+        prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-800 prose-pre:text-[11px]
+        prose-blockquote:border-indigo-500 prose-blockquote:text-gray-400
+        prose-li:text-gray-300 prose-li:text-xs
+        prose-table:text-[11px]
+        prose-th:text-gray-400 prose-th:border-gray-700 prose-th:px-2 prose-th:py-1
+        prose-td:border-gray-800 prose-td:px-2 prose-td:py-1"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   )
 }
