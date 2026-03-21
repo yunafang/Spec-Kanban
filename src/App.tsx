@@ -8,6 +8,7 @@ import Sidebar from '@/components/layout/Sidebar'
 import TaskTable from '@/components/layout/TaskTable'
 import RightPanel from '@/components/layout/RightPanel'
 import BottomBar from '@/components/layout/BottomBar'
+import ProjectSwitcher from '@/components/layout/ProjectSwitcher'
 import FileViewer from '@/components/files/FileViewer'
 import type { Task, WsMessage } from '@/types'
 
@@ -62,11 +63,7 @@ export default function App() {
       <header className="flex items-center justify-between px-4 h-11 border-b border-gray-800 bg-gray-900/80 shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-semibold tracking-wide text-gray-100">Spec Kanban</h1>
-          {config.activeProject && (
-            <span className="text-xs px-2 py-0.5 rounded bg-indigo-600/30 text-indigo-300 border border-indigo-500/30">
-              {config.activeProject}
-            </span>
-          )}
+          <ProjectSwitcher />
         </div>
         <div className="flex items-center gap-4">
           <span className="text-xs text-gray-400">
