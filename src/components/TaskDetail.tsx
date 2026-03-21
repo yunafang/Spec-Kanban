@@ -189,6 +189,47 @@ export default function TaskDetail({ task: initialTask, onClose }: TaskDetailPro
           </div>
         )}
 
+        {/* Rollback actions — shown when no humanAction pending */}
+        {!task.humanAction && task.status !== 'inbox' && (
+          <div className="mb-4 p-3 bg-gray-800/50 border border-gray-700 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400">操作</span>
+              <div className="flex gap-2">
+                {task.status === 'done' && task.merged && (
+                  <button
+                    onClick={() => handleAction('rollback_code')}
+                    className="px-3 py-1.5 bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded text-xs font-medium cursor-pointer"
+                  >
+                    回滚代码 (git revert)
+                  </button>
+                )}
+                {task.status === 'done' && !task.merged && task.branch && (
+                  <button
+                    onClick={() => handleAction('rollback_branch')}
+                    className="px-3 py-1.5 bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded text-xs font-medium cursor-pointer"
+                  >
+                    删除分支
+                  </button>
+                )}
+                <button
+                  onClick={() => handleAction('rollback_to_brainstorm')}
+                  className="px-3 py-1.5 bg-amber-600/20 text-amber-400 hover:bg-amber-600/30 rounded text-xs font-medium cursor-pointer"
+                >
+                  回退到 Brainstorm
+                </button>
+                {(task.status === 'brainstorm' || task.status === 'planning' || task.status === 'executing') && (
+                  <button
+                    onClick={() => handleAction('cancel')}
+                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs font-medium cursor-pointer"
+                  >
+                    停止
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stage outputs — the main preview area */}
         {(task.artifacts.design || task.artifacts.plan) && (
           <div className="mb-4">

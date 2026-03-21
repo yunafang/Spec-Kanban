@@ -275,6 +275,64 @@ export async function advanceTask(taskId: string, action: string, feedback?: str
       })
       processQueue()
       break
+
+    case 'rollback_code': {
+      // Git revert merged code
+      if (task.branch && task.merged) {
+        try {
+          const { revertMerge } = await import('./git-ops.js')
+          await revertMerge(projectDir, task.branch)
+          updateTask(taskId, {
+            status: 'inbox',
+            humanAction: null,
+            merged: false,
+            version: task.version + 1,
+            sessionId: null,
+            completedAt: null,
+            history: [...task.history, {
+              action: 'rollback_code',
+              fromVersion: task.version,
+              reason: feedback || 'git revert',
+              at: new Date().toISOString()
+            }]
+          })
+        } catch (e) {
+          appendLog(taskId, `\n[ERROR] rollback failed: ${(e as Error).message}`)
+          updateTask(taskId, { status: 'needs_human', humanAction: 'error' })
+        }
+      }
+      processQueue()
+      break
+    }
+
+    case 'rollback_branch': {
+      // Delete unmerged task branch
+      if (task.branch && !task.merged) {
+        try {
+          const { deleteBranch } = await import('./git-ops.js')
+          await deleteBranch(projectDir, task.branch)
+          updateTask(taskId, {
+            status: 'inbox',
+            humanAction: null,
+            branch: null,
+            version: task.version + 1,
+            sessionId: null,
+            completedAt: null,
+            history: [...task.history, {
+              action: 'rollback_branch',
+              fromVersion: task.version,
+              reason: feedback || 'delete branch',
+              at: new Date().toISOString()
+            }]
+          })
+        } catch (e) {
+          appendLog(taskId, `\n[ERROR] branch delete failed: ${(e as Error).message}`)
+          updateTask(taskId, { status: 'needs_human', humanAction: 'error' })
+        }
+      }
+      processQueue()
+      break
+    }
   }
 }
 
