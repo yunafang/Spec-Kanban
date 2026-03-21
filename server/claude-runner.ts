@@ -19,7 +19,7 @@ export function spawnClaude(
   const args: string[] = []
 
   if (options?.stream) {
-    args.push('--output-format', 'stream-json')
+    args.push('--print', '--verbose', '--output-format', 'stream-json')
   } else {
     args.push('--print', '--output-format', 'json')
   }
