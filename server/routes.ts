@@ -360,4 +360,25 @@ router.get('/api/tasks/:id/files', async (req, res) => {
   }
 })
 
+// GET /api/browse — browse system directories for project selection
+router.get('/api/browse', (req, res) => {
+  const os = require('os')
+  const dir = (req.query.dir as string) || os.homedir()
+  const resolved = path.resolve(dir)
+
+  if (!fs.existsSync(resolved)) { res.json({ path: dir, dirs: [], isGit: false }); return }
+
+  try {
+    const entries = fs.readdirSync(resolved, { withFileTypes: true })
+    const dirs = entries
+      .filter((e) => e.isDirectory() && !e.name.startsWith('.') && e.name !== 'node_modules' && e.name !== 'Library')
+      .map((e) => e.name)
+      .sort()
+    const isGit = fs.existsSync(path.join(resolved, '.git'))
+    res.json({ path: resolved, dirs, isGit })
+  } catch {
+    res.json({ path: resolved, dirs: [], isGit: false })
+  }
+})
+
 export default router
