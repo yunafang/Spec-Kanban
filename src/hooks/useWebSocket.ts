@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import type { WsMessage } from '@/types'
 
-export function useWebSocket(onMessage: (msg: WsMessage) => void) {
+export function useWebSocket(onMessage: (msg: WsMessage) => void, enabled = true) {
   const wsRef = useRef<WebSocket | null>(null)
   const [, setReconnectCount] = useState(0)
   const onMessageRef = useRef(onMessage)
@@ -29,11 +29,12 @@ export function useWebSocket(onMessage: (msg: WsMessage) => void) {
   }, [])
 
   useEffect(() => {
+    if (!enabled) return
     connect()
     return () => {
       wsRef.current?.close()
     }
-  }, [connect])
+  }, [connect, enabled])
 
   return wsRef
 }

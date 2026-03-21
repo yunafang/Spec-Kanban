@@ -9,6 +9,8 @@ import { useConfigStore } from '@/store/configStore'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { Task, WsMessage } from '@/types'
 
+const isDemo = import.meta.env.VITE_DEMO === 'true'
+
 export default function App() {
   const [showNewTask, setShowNewTask] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -17,8 +19,15 @@ export default function App() {
   const { setConfig } = useConfigStore()
 
   useEffect(() => {
-    fetch('/api/tasks').then((r) => r.json()).then(setTasks).catch(() => {})
-    fetch('/api/config').then((r) => r.json()).then(setConfig).catch(() => {})
+    if (isDemo) {
+      import('@/mock/data').then(({ mockTasks, mockConfig }) => {
+        setTasks(mockTasks)
+        setConfig(mockConfig)
+      })
+    } else {
+      fetch('/api/tasks').then((r) => r.json()).then(setTasks).catch(() => {})
+      fetch('/api/config').then((r) => r.json()).then(setConfig).catch(() => {})
+    }
   }, [setTasks, setConfig])
 
   const handleWsMessage = useCallback((msg: WsMessage) => {
@@ -42,7 +51,7 @@ export default function App() {
     }
   }, [upsertTask, removeTask, setTasks, setConfig])
 
-  useWebSocket(handleWsMessage)
+  useWebSocket(handleWsMessage, !isDemo)
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
