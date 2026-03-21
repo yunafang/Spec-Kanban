@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { marked } from 'marked'
 import LogViewer from '@/components/LogViewer'
 import StageProgress from './StageProgress'
 import { useTaskStore } from '@/store/taskStore'
 import { useUiStore } from '@/store/uiStore'
+import type { Task } from '@/types'
 
 interface TaskDetailProps {
   taskId: string
@@ -27,6 +29,151 @@ function ChildTasks({ parentId }: { parentId: string }) {
         </div>
       ))}
     </div>
+  )
+}
+
+function HumanActionPanel({ task, feedback, setFeedback, onAction }: {
+  task: Task
+  feedback: string
+  setFeedback: (v: string) => void
+  onAction: (action: string) => void
+}) {
+  const [artifactContent, setArtifactContent] = useState<string | null>(null)
+  const selectFile = useUiStore((s) => s.selectFile)
+
+  // Determine which artifact to show
+  const artifactPath =
+    task.humanAction === 'confirm_design' ? task.artifacts.design :
+    task.humanAction === 'confirm_plan' ? task.artifacts.plan :
+    null
+
+  const actionLabel =
+    task.humanAction === 'confirm_design' ? '设计方案' :
+    task.humanAction === 'confirm_plan' ? '实施计划' :
+    task.humanAction === 'confirm_split' ? '拆分方案' :
+    task.humanAction === 'confirm_merge' ? '代码合并' :
+    task.humanAction === 'error' ? '错误' : ''
+
+  // Auto-load artifact content
+  useEffect(() => {
+    if (!artifactPath) return
+    fetch(`/api/files/content?path=${encodeURIComponent(artifactPath)}`)
+      .then(r => r.json())
+      .then(data => setArtifactContent(data.content || null))
+      .catch(() => setArtifactContent(null))
+  }, [artifactPath])
+
+  const borderColor =
+    task.humanAction === 'confirm_design' ? 'border-amber-500/30' :
+    task.humanAction === 'confirm_plan' ? 'border-indigo-500/30' :
+    task.humanAction === 'confirm_merge' ? 'border-emerald-500/30' :
+    'border-red-500/30'
+
+  const bgColor =
+    task.humanAction === 'confirm_design' ? 'bg-amber-500/5' :
+    task.humanAction === 'confirm_plan' ? 'bg-indigo-500/5' :
+    task.humanAction === 'confirm_merge' ? 'bg-emerald-500/5' :
+    'bg-red-500/5'
+
+  return (
+    <div className={`mb-4 border ${borderColor} ${bgColor} rounded-lg overflow-hidden`}>
+      {/* Header */}
+      <div className="px-4 py-2.5 flex items-center justify-between border-b border-gray-800/50">
+        <div className="text-sm font-semibold text-gray-200">
+          📋 {actionLabel}待确认
+        </div>
+        {artifactPath && (
+          <button
+            onClick={() => selectFile(artifactPath)}
+            className="text-[10px] text-indigo-400 hover:text-indigo-300 cursor-pointer"
+          >
+            在编辑器中打开 →
+          </button>
+        )}
+      </div>
+
+      {/* Artifact content preview */}
+      {artifactContent && (
+        <div className="max-h-80 overflow-y-auto px-4 py-3 border-b border-gray-800/50">
+          {artifactPath?.endsWith('.md') ? (
+            <MarkdownInline content={artifactContent} />
+          ) : (
+            <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap leading-relaxed">{artifactContent}</pre>
+          )}
+        </div>
+      )}
+
+      {task.humanAction === 'error' && !artifactContent && (
+        <div className="px-4 py-3 text-sm text-red-400 border-b border-gray-800/50">
+          执行出错，请查看下方执行日志了解详情
+        </div>
+      )}
+
+      {/* Feedback + actions */}
+      <div className="px-4 py-3">
+        <textarea
+          className="w-full bg-gray-800/80 rounded-lg px-3 py-2 mb-3 text-xs outline-none focus:ring-1 focus:ring-indigo-500 h-14 resize-none"
+          placeholder="修改意见（可选）..."
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+        />
+        <div className="flex gap-2 flex-wrap">
+          {task.humanAction !== 'error' && (
+            <button
+              onClick={() => onAction(task.humanAction!)}
+              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-medium cursor-pointer"
+            >
+              ✓ 确认通过
+            </button>
+          )}
+          <button
+            onClick={() => onAction('reject')}
+            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs font-medium cursor-pointer"
+          >
+            拒绝
+          </button>
+          <button
+            onClick={() => onAction('rollback_to_brainstorm')}
+            className="px-3 py-1.5 bg-amber-600/20 text-amber-400 hover:bg-amber-600/30 rounded-lg text-xs font-medium cursor-pointer"
+          >
+            ↩ 回退
+          </button>
+          <button
+            onClick={() => onAction('cancel')}
+            className="px-3 py-1.5 bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded-lg text-xs font-medium cursor-pointer"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Inline markdown renderer for artifact preview */
+function MarkdownInline({ content }: { content: string }) {
+  const html = useMemo(() => {
+    marked.setOptions({ breaks: true, gfm: true })
+    return marked.parse(content) as string
+  }, [content])
+
+  return (
+    <div
+      className="prose prose-invert prose-sm max-w-none
+        prose-headings:text-gray-100 prose-headings:border-b prose-headings:border-gray-800/30 prose-headings:pb-1
+        prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
+        prose-p:text-gray-300 prose-p:leading-relaxed prose-p:text-xs
+        prose-a:text-indigo-400
+        prose-strong:text-gray-200
+        prose-code:text-indigo-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px]
+        prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-800 prose-pre:text-[11px]
+        prose-blockquote:border-indigo-500 prose-blockquote:text-gray-400
+        prose-li:text-gray-300 prose-li:text-xs
+        prose-table:text-[11px]
+        prose-th:text-gray-400 prose-th:border-gray-700 prose-th:px-2 prose-th:py-1
+        prose-td:border-gray-800 prose-td:px-2 prose-td:py-1"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   )
 }
 
@@ -127,51 +274,9 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
         <OutputFiles taskId={task.id} />
       )}
 
-      {/* Human action buttons */}
+      {/* Human action — with artifact preview */}
       {task.humanAction && (
-        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-          <div className="text-sm font-medium text-red-400 mb-2">
-            {task.humanAction === 'confirm_design' && '设计方案已生成，请确认'}
-            {task.humanAction === 'confirm_plan' && '实施计划已生成，请确认'}
-            {task.humanAction === 'confirm_split' && '建议拆分为子任务，请确认'}
-            {task.humanAction === 'confirm_merge' && '编码完成，确认合并到 main？'}
-            {task.humanAction === 'error' && '执行出错，请查看日志'}
-          </div>
-          <textarea
-            className="w-full bg-gray-800 rounded-lg px-3 py-2 mb-2 text-xs outline-none focus:ring-1 focus:ring-indigo-500 h-16 resize-none"
-            placeholder="修改意见（可选）..."
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-          />
-          <div className="flex gap-2 flex-wrap">
-            {task.humanAction !== 'error' && (
-              <button
-                onClick={() => handleAction(task.humanAction!)}
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded text-xs font-medium cursor-pointer"
-              >
-                确认
-              </button>
-            )}
-            <button
-              onClick={() => handleAction('reject')}
-              className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs font-medium cursor-pointer"
-            >
-              拒绝
-            </button>
-            <button
-              onClick={() => handleAction('rollback_to_brainstorm')}
-              className="px-3 py-1.5 bg-amber-600/20 text-amber-400 hover:bg-amber-600/30 rounded text-xs font-medium cursor-pointer"
-            >
-              回退到 Brainstorm
-            </button>
-            <button
-              onClick={() => handleAction('cancel')}
-              className="px-3 py-1.5 bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded text-xs font-medium cursor-pointer"
-            >
-              取消
-            </button>
-          </div>
-        </div>
+        <HumanActionPanel task={task} feedback={feedback} setFeedback={setFeedback} onAction={handleAction} />
       )}
 
       {/* Rollback actions -- shown when no humanAction pending */}
