@@ -2,12 +2,28 @@ import { useUiStore } from '@/store/uiStore'
 import { useTaskStore } from '@/store/taskStore'
 import TaskDetail from '@/components/detail/TaskDetail'
 import FileViewer from '@/components/files/FileViewer'
+import IssueList from '@/components/issues/IssueList'
+import IssueForm from '@/components/issues/IssueForm'
 
 const tabs = [
   { key: 'detail' as const, label: '📋 任务详情' },
   { key: 'file' as const, label: '📄 文件预览' },
   { key: 'issues' as const, label: '💬 Issues' },
 ]
+
+function IssuesTab({ taskId }: { taskId: string }) {
+  const task = useTaskStore((s) => s.tasks.find((t) => t.id === taskId))
+  const issues = task?.issues || []
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto">
+        <IssueList taskId={taskId} issues={issues} />
+      </div>
+      <IssueForm taskId={taskId} defaultStage={task?.status === 'brainstorm' ? 'brainstorm' : task?.status === 'planning' ? 'planning' : task?.status === 'executing' ? 'executing' : 'brainstorm'} onSubmit={() => {}} />
+    </div>
+  )
+}
 
 export default function RightPanel() {
   const rightTab = useUiStore((s) => s.rightTab)
@@ -69,9 +85,13 @@ export default function RightPanel() {
         )}
 
         {rightTab === 'issues' && (
-          <div className="flex items-center justify-center h-full text-sm text-gray-600">
-            Issues (coming soon)
-          </div>
+          selectedTaskId ? (
+            <IssuesTab taskId={selectedTaskId} />
+          ) : (
+            <div className="flex items-center justify-center h-full text-sm text-gray-600">
+              选择一个任务查看 Issues
+            </div>
+          )
         )}
       </div>
     </div>

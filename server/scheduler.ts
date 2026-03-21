@@ -107,7 +107,7 @@ function startBrainstorm(task: Task, projectDir: string) {
     startedAt: new Date().toISOString()
   })
 
-  const prompt = brainstormPrompt(task.description)
+  const prompt = brainstormPrompt(task.description, task)
 
   spawnClaude(task, prompt, projectDir, {
     onOutput: (data) => appendLog(task.id, data),
@@ -153,7 +153,7 @@ export async function advanceTask(taskId: string, action: string, feedback?: str
   switch (action) {
     case 'confirm_design':
       updateTask(taskId, { status: 'planning', humanAction: null })
-      spawnClaude(task, planningPrompt(), projectDir, {
+      spawnClaude(task, planningPrompt(task), projectDir, {
         onOutput: (data) => appendLog(taskId, data),
         onComplete: (result) => {
           const { content } = extractClaudeOutput(result.output)
@@ -172,7 +172,7 @@ export async function advanceTask(taskId: string, action: string, feedback?: str
       const branchName = `task/${taskId}`
       await createBranch(projectDir, branchName)
       updateTask(taskId, { status: 'executing', humanAction: null, branch: branchName })
-      spawnClaude(task, executingPrompt(), projectDir, {
+      spawnClaude(task, executingPrompt(task), projectDir, {
         onOutput: (data) => appendLog(taskId, data),
         onComplete: () => {
           updateTask(taskId, {
@@ -223,6 +223,7 @@ export async function advanceTask(taskId: string, action: string, feedback?: str
             children: [],
             title: sub.title,
             description: sub.description,
+            skillId: task.skillId || 'superpowers',
             status: 'inbox',
             humanAction: null,
             sessionId: null,
@@ -232,6 +233,7 @@ export async function advanceTask(taskId: string, action: string, feedback?: str
             progress: { current: 0, total: 0 },
             artifacts: {},
             history: [],
+            issues: [],
             createdAt: new Date().toISOString(),
             startedAt: null,
             completedAt: null

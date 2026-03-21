@@ -96,6 +96,7 @@ router.post('/api/tasks', (req, res) => {
     progress: { current: 0, total: 0 },
     artifacts: {},
     history: [],
+    issues: [],
     createdAt: new Date().toISOString(),
     startedAt: null,
     completedAt: null
@@ -295,6 +296,45 @@ router.get('/api/files/content', (req, res) => {
     '.sh': 'shell', '.sql': 'sql', '.toml': 'toml',
   }
   res.json({ content, language: langMap[ext] || '', size: stat.size })
+})
+
+// POST /api/tasks/:id/issues — Create an issue
+router.post('/api/tasks/:id/issues', (req, res) => {
+  const { stage, content } = req.body
+  const tasks = readTasks()
+  const idx = tasks.findIndex((t) => t.id === req.params.id)
+  if (idx === -1) { res.status(404).json({ error: 'Task not found' }); return }
+
+  const issue = {
+    id: `issue_${nanoid(8)}`,
+    stage,
+    content,
+    status: 'open' as const,
+    createdAt: new Date().toISOString(),
+    resolvedAt: null
+  }
+
+  if (!tasks[idx].issues) tasks[idx].issues = []
+  tasks[idx].issues.push(issue)
+  writeTasks(tasks)
+  broadcast({ type: 'task:updated', payload: tasks[idx] })
+  res.status(201).json(issue)
+})
+
+// PATCH /api/tasks/:id/issues/:issueId — Resolve an issue
+router.patch('/api/tasks/:id/issues/:issueId', (req, res) => {
+  const tasks = readTasks()
+  const task = tasks.find((t) => t.id === req.params.id)
+  if (!task) { res.status(404).json({ error: 'Task not found' }); return }
+
+  const issue = task.issues?.find((i) => i.id === req.params.issueId)
+  if (!issue) { res.status(404).json({ error: 'Issue not found' }); return }
+
+  issue.status = req.body.status || 'resolved'
+  issue.resolvedAt = new Date().toISOString()
+  writeTasks(tasks)
+  broadcast({ type: 'task:updated', payload: task })
+  res.json(issue)
 })
 
 export default router
