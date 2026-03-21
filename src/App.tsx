@@ -1,22 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
-import Board from '@/components/Board'
-import TopBar from '@/components/TopBar'
-import NewTaskForm from '@/components/NewTaskForm'
-import TaskDetail from '@/components/TaskDetail'
-import ProjectSettings from '@/components/ProjectSettings'
 import { useTaskStore } from '@/store/taskStore'
 import { useConfigStore } from '@/store/configStore'
+import { useUiStore } from '@/store/uiStore'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import ResizeHandle from '@/components/layout/ResizeHandle'
 import type { Task, WsMessage } from '@/types'
 
 const isDemo = import.meta.env.VITE_DEMO === 'true'
 
 export default function App() {
-  const [showNewTask, setShowNewTask] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const { setTasks, upsertTask, removeTask } = useTaskStore()
-  const { setConfig } = useConfigStore()
+  const { config, setConfig } = useConfigStore()
+  const { sidebarWidth, rightPanelWidth, setSidebarWidth, setRightPanelWidth } = useUiStore()
 
   useEffect(() => {
     if (isDemo) {
@@ -53,15 +49,65 @@ export default function App() {
 
   useWebSocket(handleWsMessage, !isDemo)
 
+  const runningCount = useTaskStore((s) => s.tasks.filter((t) => t.status === 'executing').length)
+
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <TopBar onNewTask={() => setShowNewTask(true)} onSettings={() => setShowSettings(true)} />
-      <Board onTaskClick={setSelectedTask} />
-      {showSettings && <ProjectSettings onClose={() => setShowSettings(false)} />}
-      {showNewTask && <NewTaskForm onClose={() => setShowNewTask(false)} />}
-      {selectedTask && (
-        <TaskDetail task={selectedTask} onClose={() => setSelectedTask(null)} />
-      )}
+    <div className="h-screen flex flex-col bg-gray-950 text-gray-100">
+      {/* Header bar */}
+      <header className="flex items-center justify-between px-4 h-11 border-b border-gray-800 bg-gray-900/80 shrink-0">
+        <div className="flex items-center gap-3">
+          <h1 className="text-sm font-semibold tracking-wide text-gray-100">Spec Kanban</h1>
+          {config.activeProject && (
+            <span className="text-xs px-2 py-0.5 rounded bg-indigo-600/30 text-indigo-300 border border-indigo-500/30">
+              {config.activeProject}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-gray-400">
+            并行: {runningCount}/{config.maxConcurrency}
+          </span>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="text-xs px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-gray-100 transition-colors border border-gray-700"
+          >
+            Settings
+          </button>
+        </div>
+      </header>
+
+      {/* Main area: 3 columns */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left sidebar */}
+        <aside
+          style={{ width: sidebarWidth }}
+          className="shrink-0 border-r border-gray-800 bg-gray-900/50 flex items-center justify-center overflow-hidden"
+        >
+          <span className="text-sm text-gray-500">Sidebar</span>
+        </aside>
+
+        <ResizeHandle onResize={(delta) => setSidebarWidth(sidebarWidth + delta)} />
+
+        {/* Center panel */}
+        <main className="flex-1 flex items-center justify-center overflow-hidden">
+          <span className="text-sm text-gray-500">Task Table</span>
+        </main>
+
+        <ResizeHandle onResize={(delta) => setRightPanelWidth(rightPanelWidth - delta)} />
+
+        {/* Right panel */}
+        <aside
+          style={{ width: rightPanelWidth }}
+          className="shrink-0 border-l border-gray-800 bg-gray-900/50 flex items-center justify-center overflow-hidden"
+        >
+          <span className="text-sm text-gray-500">Right Panel</span>
+        </aside>
+      </div>
+
+      {/* Bottom bar */}
+      <footer className="h-10 border-t border-gray-800 bg-gray-900/80 flex items-center justify-center shrink-0">
+        <span className="text-sm text-gray-500">Bottom Bar</span>
+      </footer>
     </div>
   )
 }
