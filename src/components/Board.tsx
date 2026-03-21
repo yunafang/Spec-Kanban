@@ -1,4 +1,4 @@
-import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import Column from './Column'
 import { useTaskStore } from '@/store/taskStore'
 import type { Task, TaskStatus } from '@/types'
@@ -12,6 +12,13 @@ interface BoardProps {
 export default function Board({ onTaskClick }: BoardProps) {
   const tasks = useTaskStore((s) => s.tasks)
 
+  // Require 8px movement before drag starts — allows clicks to pass through
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 }
+    })
+  )
+
   const tasksByStatus = (status: TaskStatus) =>
     tasks.filter((t) => t.status === status && !t.parentId)
 
@@ -20,7 +27,7 @@ export default function Board({ onTaskClick }: BoardProps) {
   }
 
   return (
-    <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="grid grid-cols-6 gap-3 p-4 h-[calc(100vh-60px)] overflow-x-auto">
         {columns.map((status) => (
           <Column
