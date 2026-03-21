@@ -114,4 +114,26 @@ router.post('/api/config/projects', (req, res) => {
   res.status(201).json(config)
 })
 
+// POST /api/config/projects/validate
+router.post('/api/config/projects/validate', async (req, res) => {
+  const { path: projectPath } = req.body
+  if (!fs.existsSync(projectPath)) {
+    res.json({ valid: false, error: '目录不存在' }); return
+  }
+  const { isGitRepo } = await import('./git-ops.js')
+  const isRepo = await isGitRepo(projectPath)
+  if (!isRepo) {
+    res.json({ valid: false, error: '不是 Git 仓库' }); return
+  }
+  let name = path.basename(projectPath)
+  const pkgPath = path.join(projectPath, 'package.json')
+  if (fs.existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+      name = pkg.name || name
+    } catch {}
+  }
+  res.json({ valid: true, name })
+})
+
 export default router

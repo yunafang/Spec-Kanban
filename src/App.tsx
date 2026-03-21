@@ -3,6 +3,7 @@ import Board from '@/components/Board'
 import TopBar from '@/components/TopBar'
 import NewTaskForm from '@/components/NewTaskForm'
 import TaskDetail from '@/components/TaskDetail'
+import ProjectSettings from '@/components/ProjectSettings'
 import { useTaskStore } from '@/store/taskStore'
 import { useConfigStore } from '@/store/configStore'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -10,6 +11,7 @@ import type { Task, WsMessage } from '@/types'
 
 export default function App() {
   const [showNewTask, setShowNewTask] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const { setTasks, upsertTask, removeTask } = useTaskStore()
   const { setConfig } = useConfigStore()
@@ -44,8 +46,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      <TopBar onNewTask={() => setShowNewTask(true)} />
+      <TopBar onNewTask={() => setShowNewTask(true)} onSettings={() => setShowSettings(true)} />
       <Board onTaskClick={setSelectedTask} />
+      {showSettings && <ProjectSettings onClose={() => setShowSettings(false)} />}
       {showNewTask && <NewTaskForm onClose={() => setShowNewTask(false)} />}
       {selectedTask && (
         <TaskDetail task={selectedTask} onClose={() => setSelectedTask(null)} />
