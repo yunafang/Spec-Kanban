@@ -1,7 +1,14 @@
 import { execa } from 'execa'
 
 export async function createBranch(projectDir: string, branchName: string): Promise<void> {
-  await execa('git', ['checkout', '-b', branchName], { cwd: projectDir })
+  // Check if branch already exists
+  const { stdout } = await execa('git', ['branch', '--list', branchName], { cwd: projectDir })
+  if (stdout.trim()) {
+    // Branch exists — just checkout
+    await execa('git', ['checkout', branchName], { cwd: projectDir })
+  } else {
+    await execa('git', ['checkout', '-b', branchName], { cwd: projectDir })
+  }
 }
 
 export async function deleteBranch(projectDir: string, branchName: string): Promise<void> {
