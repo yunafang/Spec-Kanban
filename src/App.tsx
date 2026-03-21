@@ -5,7 +5,8 @@ import { useUiStore } from '@/store/uiStore'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import ResizeHandle from '@/components/layout/ResizeHandle'
 import Sidebar from '@/components/layout/Sidebar'
-import TaskTable from '@/components/layout/TaskTable'
+import StageKanban from '@/components/layout/StageKanban'
+import TerminalPanel from '@/components/layout/TerminalPanel'
 import RightPanel from '@/components/layout/RightPanel'
 import BottomBar from '@/components/layout/BottomBar'
 import ProjectSwitcher from '@/components/layout/ProjectSwitcher'
@@ -18,7 +19,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const { setTasks, upsertTask, removeTask } = useTaskStore()
   const { config, setConfig } = useConfigStore()
-  const { sidebarWidth, rightPanelWidth, selectedFile, setSidebarWidth, setRightPanelWidth, selectFile } = useUiStore()
+  const { sidebarWidth, rightPanelWidth, terminalHeight, selectedFile, setSidebarWidth, setRightPanelWidth, setTerminalHeight, selectFile } = useUiStore()
 
   useEffect(() => {
     if (isDemo) {
@@ -115,7 +116,18 @@ export default function App() {
               </div>
             </>
           ) : (
-            <TaskTable />
+            <>
+              {/* Stage kanban */}
+              <div className="flex-1 overflow-hidden">
+                <StageKanban />
+              </div>
+              {/* Horizontal resize handle */}
+              <ResizeHandle direction="vertical" onResize={(delta) => setTerminalHeight(terminalHeight - delta)} />
+              {/* Terminal panel */}
+              <div style={{ height: terminalHeight }} className="shrink-0 border-t border-gray-800 overflow-hidden">
+                <TerminalPanel />
+              </div>
+            </>
           )}
         </main>
 
