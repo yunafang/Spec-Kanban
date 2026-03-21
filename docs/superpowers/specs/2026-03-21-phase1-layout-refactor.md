@@ -46,8 +46,9 @@
 ## 3. 左侧栏 — 项目文件 + Skills
 
 ### 文件树
-- 调用 `GET /api/files/tree` 获取目录结构
-- 可折叠目录，点击文件 → 右侧切换到「文件预览」tab
+- 调用 `GET /api/files/tree` 获取目录结构（默认 4 层深度）
+- 可折叠目录，展开时按需加载子目录（懒加载）
+- 点击文件 → 右侧切换到「文件预览」tab
 - 文件图标根据扩展名区分（.ts/.tsx, .json, .md 等）
 - 不显示 node_modules、.git、dist 等忽略目录
 
@@ -104,7 +105,7 @@
 - 每个 Issue：内容、关联阶段、状态（open/resolved）
 - 创建 Issue 表单（关联到当前任务 + 阶段）
 - 从任务详情「提 Issue」按钮触发
-- AI 在下次执行时读取未解决 Issue 作为修改指令
+- AI 在下次执行时读取未解决 Issue 作为修改指令：scheduler 在构造 prompt 时检查 task.issues 中 status=open 的条目，拼接到 prompt 末尾作为"用户反馈，请针对以下问题修改方案"
 
 ## 6. 底部栏 — 任务输入
 
@@ -215,6 +216,8 @@ src/
 ```typescript
 // 读取目标项目目录树
 // 忽略：node_modules, .git, dist, data, .superpowers
+// 深度限制：默认 4 层，避免大项目性能问题
+// 目录可展开时按需加载子目录：GET /api/files/tree?dir=src/components
 // 返回：FileNode[]
 ```
 
@@ -222,6 +225,7 @@ src/
 ```typescript
 // 读取单个文件内容
 // 参数：path（相对于项目根目录）
+// 安全：必须校验 resolved path 在项目根目录内，拒绝 ../、符号链接等路径穿越
 // 限制：最大 1MB，二进制文件返回提示
 // 返回：{ content: string, language: string, size: number }
 ```
