@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx bin/cli.ts",
+    "dev:vite": "vite",
+    "build": "vite build",
+    "build:demo": "VITE_DEMO=true vite build",
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
