@@ -383,40 +383,95 @@ router.get('/api/browse', (req, res) => {
   }
 })
 
-// GET /api/project/scan — scan active project for superpowers data
-router.get('/api/project/scan', (req, res) => {
+// POST /api/project/scan — scan project for superpowers docs and import as tasks
+router.post('/api/project/scan', (req, res) => {
   const config = readConfig()
   const project = config.projects.find(p => p.name === config.activeProject)
-  if (!project) { res.json({ specs: [], plans: [] }); return }
+  if (!project) { res.json({ imported: 0 }); return }
 
-  const specs: { name: string; path: string; date: string }[] = []
-  const plans: { name: string; path: string; date: string }[] = []
+  const tasks = readTasks()
+  let imported = 0
 
+  // Read specs
   const specsDir = path.join(project.path, 'docs/superpowers/specs')
+  const specsMap = new Map<string, { name: string; specPath: string; date: string; content: string }>()
+
   if (fs.existsSync(specsDir)) {
     for (const file of fs.readdirSync(specsDir).filter(f => f.endsWith('.md'))) {
+      const name = file.replace(/\.md$/, '').replace(/^\d{4}-\d{2}-\d{2}-/, '')
       const dateMatch = file.match(/^(\d{4}-\d{2}-\d{2})/)
-      specs.push({
-        name: file.replace(/\.md$/, '').replace(/^\d{4}-\d{2}-\d{2}-/, ''),
-        path: `docs/superpowers/specs/${file}`,
-        date: dateMatch?.[1] || ''
+      const content = fs.readFileSync(path.join(specsDir, file), 'utf-8')
+      // Extract title from first # heading
+      const titleMatch = content.match(/^#\s+(.+)/m)
+      specsMap.set(name, {
+        name: titleMatch?.[1] || name,
+        specPath: `docs/superpowers/specs/${file}`,
+        date: dateMatch?.[1] || '',
+        content: content.slice(0, 500)
       })
     }
   }
 
+  // Read plans
   const plansDir = path.join(project.path, 'docs/superpowers/plans')
+  const plansMap = new Map<string, { planPath: string }>()
+
   if (fs.existsSync(plansDir)) {
     for (const file of fs.readdirSync(plansDir).filter(f => f.endsWith('.md'))) {
-      const dateMatch = file.match(/^(\d{4}-\d{2}-\d{2})/)
-      plans.push({
-        name: file.replace(/\.md$/, '').replace(/^\d{4}-\d{2}-\d{2}-/, ''),
-        path: `docs/superpowers/plans/${file}`,
-        date: dateMatch?.[1] || ''
-      })
+      const name = file.replace(/\.md$/, '').replace(/^\d{4}-\d{2}-\d{2}-/, '')
+      plansMap.set(name, { planPath: `docs/superpowers/plans/${file}` })
     }
   }
 
-  res.json({ specs, plans })
+  // Create tasks for each spec (avoid duplicates by checking existing task titles)
+  const existingTitles = new Set(tasks.filter(t => t.projectName === config.activeProject).map(t => t.title))
+
+  for (const [key, spec] of specsMap) {
+    if (existingTitles.has(spec.name)) continue
+
+    const hasPlan = plansMap.has(key)
+
+    // Determine status based on what documents exist
+    let status: string = 'needs_human'
+    let humanAction: string | null = 'confirm_design'
+    if (hasPlan) {
+      status = 'needs_human'
+      humanAction = 'confirm_plan'
+    }
+
+    const task: Task = {
+      id: `task_${nanoid(8)}`,
+      parentId: null,
+      children: [],
+      title: spec.name,
+      description: `从项目文档导入：${spec.specPath}`,
+      projectName: config.activeProject || '',
+      skillId: 'superpowers',
+      status: status as any,
+      humanAction: humanAction as any,
+      sessionId: null,
+      branch: null,
+      merged: false,
+      version: 1,
+      progress: { current: hasPlan ? 2 : 1, total: 3 },
+      artifacts: {
+        design: spec.specPath,
+        ...(hasPlan ? { plan: plansMap.get(key)!.planPath } : {})
+      },
+      history: [],
+      issues: [],
+      createdAt: spec.date ? `${spec.date}T00:00:00Z` : new Date().toISOString(),
+      startedAt: spec.date ? `${spec.date}T00:00:00Z` : new Date().toISOString(),
+      completedAt: null
+    }
+
+    tasks.push(task)
+    broadcast({ type: 'task:created', payload: task })
+    imported++
+  }
+
+  if (imported > 0) writeTasks(tasks)
+  res.json({ imported })
 })
 
 export default router
