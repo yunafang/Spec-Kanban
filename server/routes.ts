@@ -24,7 +24,7 @@ interface FileNode {
 }
 
 const IGNORED_DIRS = new Set([
-  'node_modules', '.git', 'dist', 'data', '.superpowers', '.DS_Store', '__pycache__'
+  'node_modules', '.git', 'dist', 'data', '.superpowers', '.spec-kanban', '.DS_Store', '__pycache__'
 ])
 
 function readDir(dir: string, rootDir: string, depth: number, maxDepth: number): FileNode[] {
@@ -487,6 +487,133 @@ router.post('/api/project/scan', (req, res) => {
 
   if (imported > 0) writeTasks(tasks)
   res.json({ imported })
+})
+
+// --- Skill management endpoints ---
+
+// GET /api/project/skills — list enabled skills
+router.get('/api/project/skills', (req, res) => {
+  const config = readConfig()
+  const project = config.projects.find(p => p.name === config.activeProject)
+  if (!project) { res.json({ enabled: [], custom: [] }); return }
+
+  const skillsFile = path.join(project.path, '.spec-kanban', 'skills.json')
+  let projectSkills = { enabled: ['superpowers'] as string[], custom: [] as any[] }
+
+  if (fs.existsSync(skillsFile)) {
+    try { projectSkills = JSON.parse(fs.readFileSync(skillsFile, 'utf-8')) } catch {}
+  }
+
+  // Load custom skill definitions
+  const customSkillsDir = path.join(project.path, '.spec-kanban', 'skills')
+  const customDefs: any[] = []
+  if (fs.existsSync(customSkillsDir)) {
+    for (const dir of fs.readdirSync(customSkillsDir, { withFileTypes: true })) {
+      if (!dir.isDirectory()) continue
+      const defFile = path.join(customSkillsDir, dir.name, 'skill.json')
+      if (fs.existsSync(defFile)) {
+        try {
+          const def = JSON.parse(fs.readFileSync(defFile, 'utf-8'))
+          customDefs.push(def)
+        } catch {}
+      }
+    }
+  }
+
+  res.json({ enabled: projectSkills.enabled, custom: customDefs })
+})
+
+// POST /api/project/skills/enable — enable a built-in skill
+router.post('/api/project/skills/enable', (req, res) => {
+  const { skillId } = req.body
+  const config = readConfig()
+  const project = config.projects.find(p => p.name === config.activeProject)
+  if (!project) { res.status(404).json({ error: 'No active project' }); return }
+
+  const dir = path.join(project.path, '.spec-kanban')
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+
+  const skillsFile = path.join(dir, 'skills.json')
+  let projectSkills = { enabled: ['superpowers'], custom: [] }
+  if (fs.existsSync(skillsFile)) {
+    try { projectSkills = JSON.parse(fs.readFileSync(skillsFile, 'utf-8')) } catch {}
+  }
+
+  if (!projectSkills.enabled.includes(skillId)) {
+    projectSkills.enabled.push(skillId)
+  }
+  fs.writeFileSync(skillsFile, JSON.stringify(projectSkills, null, 2))
+  res.json({ ok: true, enabled: projectSkills.enabled })
+})
+
+// POST /api/project/skills/disable — disable a skill
+router.post('/api/project/skills/disable', (req, res) => {
+  const { skillId } = req.body
+  const config = readConfig()
+  const project = config.projects.find(p => p.name === config.activeProject)
+  if (!project) { res.status(404).json({ error: 'No active project' }); return }
+
+  const skillsFile = path.join(project.path, '.spec-kanban', 'skills.json')
+  let projectSkills = { enabled: ['superpowers'] as string[], custom: [] as any[] }
+  if (fs.existsSync(skillsFile)) {
+    try { projectSkills = JSON.parse(fs.readFileSync(skillsFile, 'utf-8')) } catch {}
+  }
+
+  // Don't allow disabling if it's the last skill
+  if (projectSkills.enabled.length <= 1) {
+    res.status(400).json({ error: 'Cannot disable the last skill' }); return
+  }
+
+  projectSkills.enabled = projectSkills.enabled.filter(id => id !== skillId)
+  fs.writeFileSync(skillsFile, JSON.stringify(projectSkills, null, 2))
+  res.json({ ok: true, enabled: projectSkills.enabled })
+})
+
+// POST /api/project/skills/import — import from git URL
+router.post('/api/project/skills/import', async (req, res) => {
+  const { gitUrl } = req.body
+  const config = readConfig()
+  const project = config.projects.find(p => p.name === config.activeProject)
+  if (!project) { res.status(404).json({ error: 'No active project' }); return }
+
+  const skillsDir = path.join(project.path, '.spec-kanban', 'skills')
+  if (!fs.existsSync(skillsDir)) fs.mkdirSync(skillsDir, { recursive: true })
+
+  // Extract repo name from URL
+  const repoName = gitUrl.split('/').pop()?.replace('.git', '') || 'custom-skill'
+  const targetDir = path.join(skillsDir, repoName)
+
+  try {
+    const { execa } = await import('execa')
+    if (fs.existsSync(targetDir)) {
+      // Already exists — pull latest
+      await execa('git', ['pull'], { cwd: targetDir })
+    } else {
+      await execa('git', ['clone', gitUrl, targetDir])
+    }
+
+    // Read skill.json
+    const defFile = path.join(targetDir, 'skill.json')
+    if (!fs.existsSync(defFile)) {
+      res.status(400).json({ error: 'skill.json not found in repo' }); return
+    }
+    const def = JSON.parse(fs.readFileSync(defFile, 'utf-8'))
+
+    // Auto-enable
+    const skillsFile = path.join(project.path, '.spec-kanban', 'skills.json')
+    let projectSkills = { enabled: ['superpowers'], custom: [] as string[] }
+    if (fs.existsSync(skillsFile)) {
+      try { projectSkills = JSON.parse(fs.readFileSync(skillsFile, 'utf-8')) } catch {}
+    }
+    if (!projectSkills.enabled.includes(def.id)) {
+      projectSkills.enabled.push(def.id)
+    }
+    fs.writeFileSync(skillsFile, JSON.stringify(projectSkills, null, 2))
+
+    res.json({ ok: true, skill: def })
+  } catch (e) {
+    res.status(500).json({ error: `Git clone failed: ${(e as Error).message}` })
+  }
 })
 
 export default router
