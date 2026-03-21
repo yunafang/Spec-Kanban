@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { nanoid } from 'nanoid'
+import multer from 'multer'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -7,6 +8,8 @@ import { readTasks, writeTasks, readConfig, writeConfig } from './store.js'
 import { broadcast } from './ws.js'
 import { advanceTask, processQueue } from './scheduler.js'
 import type { Task } from '../src/types/index.js'
+
+const upload = multer({ dest: '/tmp/spec-kanban-uploads/', limits: { fileSize: 10 * 1024 * 1024 } })
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const router = Router()
@@ -18,7 +21,7 @@ router.get('/api/tasks', (_req, res) => {
 
 // POST /api/tasks
 router.post('/api/tasks', (req, res) => {
-  const { title, description } = req.body
+  const { title, description, skillId } = req.body
   const tasks = readTasks()
   const task: Task = {
     id: `task_${nanoid(8)}`,
@@ -26,6 +29,7 @@ router.post('/api/tasks', (req, res) => {
     children: [],
     title,
     description,
+    skillId: skillId || 'superpowers',
     status: 'inbox',
     humanAction: null,
     sessionId: null,
@@ -141,6 +145,34 @@ router.post('/api/config/projects/validate', async (req, res) => {
     } catch {}
   }
   res.json({ valid: true, name })
+})
+
+// POST /api/upload/parse — parse uploaded file content
+router.post('/api/upload/parse', upload.single('file'), (req, res) => {
+  const file = (req as any).file
+  if (!file) { res.status(400).json({ error: 'No file' }); return }
+
+  try {
+    const ext = path.extname(file.originalname).toLowerCase()
+    let content = ''
+
+    if (['.md', '.txt', '.csv', '.json', '.prd'].includes(ext)) {
+      content = fs.readFileSync(file.path, 'utf-8')
+    } else if (['.doc', '.docx', '.pdf'].includes(ext)) {
+      // For binary formats, read as text (basic fallback)
+      // Full support would need a parser library
+      content = `[${file.originalname}] 文件已上传。文件大小: ${(file.size / 1024).toFixed(1)}KB\n\n请基于此文件执行任务。文件路径: ${file.path}`
+    } else {
+      content = fs.readFileSync(file.path, 'utf-8')
+    }
+
+    res.json({ content, filename: file.originalname, size: file.size })
+  } catch (e) {
+    res.status(500).json({ error: '文件解析失败' })
+  } finally {
+    // Clean up temp file
+    try { fs.unlinkSync(file.path) } catch {}
+  }
 })
 
 export default router

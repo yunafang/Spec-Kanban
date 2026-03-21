@@ -26,6 +26,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
     "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.18.1",
@@ -33,6 +34,7 @@
     "autoprefixer": "^10.4.27",
     "execa": "^9.6.1",
     "express": "^5.2.1",
+    "multer": "^2.1.1",
     "nanoid": "^5.1.7",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",

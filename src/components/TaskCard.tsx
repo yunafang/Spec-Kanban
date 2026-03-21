@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Task } from '@/types'
+import { getSkill } from '@/skills'
 
 const statusColors: Record<string, string> = {
   inbox: 'border-l-slate-500',
@@ -51,6 +52,7 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
   }
 
   const elapsed = timeAgo(task.startedAt || task.createdAt)
+  const skill = getSkill(task.skillId || 'superpowers')
 
   return (
     <div
@@ -97,6 +99,11 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
         {task.version > 1 && (
           <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]">
             v{task.version}
+          </span>
+        )}
+        {task.skillId && task.skillId !== 'superpowers' && (
+          <span className="px-1.5 py-0.5 bg-gray-700 text-gray-400 rounded text-[10px]">
+            {skill.icon} {skill.name}
           </span>
         )}
         {task.branch && (

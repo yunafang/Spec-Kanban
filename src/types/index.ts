@@ -33,6 +33,7 @@ export interface Task {
   children: string[]
   title: string
   description: string
+  skillId: string
   status: TaskStatus
   previousStatus?: TaskStatus
   humanAction: HumanAction
@@ -46,6 +47,21 @@ export interface Task {
   createdAt: string
   startedAt: string | null
   completedAt: string | null
+}
+
+export interface SkillStage {
+  key: string
+  label: string
+  icon: string
+  needsHumanConfirm: boolean
+}
+
+export interface Skill {
+  id: string
+  name: string
+  icon: string
+  description: string
+  stages: SkillStage[]
 }
 
 export interface ProjectConfig {
