@@ -5,6 +5,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { readTasks, writeTasks, readConfig, writeConfig } from './store.js'
 import { broadcast } from './ws.js'
+import { advanceTask, processQueue } from './scheduler.js'
 import type { Task } from '../src/types/index.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -42,6 +43,7 @@ router.post('/api/tasks', (req, res) => {
   writeTasks(tasks)
   broadcast({ type: 'task:created', payload: task })
   res.status(201).json(task)
+  processQueue()
 })
 
 // PATCH /api/tasks/:id
@@ -65,12 +67,18 @@ router.delete('/api/tasks/:id', (req, res) => {
 })
 
 // POST /api/tasks/:id/action — human actions
-router.post('/api/tasks/:id/action', (req, res) => {
+router.post('/api/tasks/:id/action', async (req, res) => {
   const { action, feedback } = req.body
   const tasks = readTasks()
   const task = tasks.find((t) => t.id === req.params.id)
   if (!task) { res.status(404).json({ error: 'Task not found' }); return }
-  // Will be wired to scheduler in Task 5
+  await advanceTask(req.params.id, action, feedback)
+  res.json({ ok: true })
+})
+
+// POST /api/scheduler/process — manually trigger queue
+router.post('/api/scheduler/process', (_req, res) => {
+  processQueue()
   res.json({ ok: true })
 })
 
