@@ -122,6 +122,19 @@ export default function TaskDetail({ task: initialTask, onClose }: TaskDetailPro
 
         <StageProgress task={task} />
 
+        {/* Timing info */}
+        <div className="mb-4 flex gap-4 text-xs text-gray-500">
+          {task.createdAt && (
+            <span>创建: {new Date(task.createdAt).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+          )}
+          {task.startedAt && (
+            <span>开始: {new Date(task.startedAt).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+          )}
+          {task.completedAt && (
+            <span>完成: {new Date(task.completedAt).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+          )}
+        </div>
+
         {task.branch && (
           <div className="mb-4 text-xs text-gray-500">
             分支: <code className="bg-gray-800 px-2 py-0.5 rounded">{task.branch}</code>
@@ -176,16 +189,16 @@ export default function TaskDetail({ task: initialTask, onClose }: TaskDetailPro
           </div>
         )}
 
-        {/* Artifacts */}
+        {/* Artifacts with inline content */}
         {(task.artifacts.design || task.artifacts.plan) && (
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-gray-400 mb-2">产出物</h3>
-            <div className="space-y-1">
+            <div className="space-y-3">
               {task.artifacts.design && (
-                <div className="text-xs text-indigo-400">📄 {task.artifacts.design}</div>
+                <ArtifactViewer label="📄 设计方案" path={task.artifacts.design} />
               )}
               {task.artifacts.plan && (
-                <div className="text-xs text-indigo-400">📋 {task.artifacts.plan}</div>
+                <ArtifactViewer label="📋 实施计划" path={task.artifacts.plan} />
               )}
             </div>
           </div>
@@ -217,6 +230,51 @@ export default function TaskDetail({ task: initialTask, onClose }: TaskDetailPro
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function ArtifactViewer({ label, path }: { label: string; path: string }) {
+  const [content, setContent] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
+
+  const loadContent = async () => {
+    if (content !== null) {
+      setExpanded(!expanded)
+      return
+    }
+    try {
+      const res = await fetch(`/api/artifacts/${encodeURIComponent(path)}`)
+      const text = await res.text()
+      // Try to parse JSON and extract readable content
+      try {
+        const json = JSON.parse(text)
+        setContent(json.design || json.plan || json.result || text)
+      } catch {
+        setContent(text)
+      }
+      setExpanded(true)
+    } catch {
+      setContent('无法加载')
+      setExpanded(true)
+    }
+  }
+
+  return (
+    <div className="bg-gray-800/50 rounded-lg overflow-hidden">
+      <button
+        onClick={loadContent}
+        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left cursor-pointer hover:bg-gray-800 transition-colors"
+      >
+        <span>{label}</span>
+        <span className="text-gray-600 flex-1 truncate">{path}</span>
+        <span className="text-gray-600">{expanded ? '▼' : '▶'}</span>
+      </button>
+      {expanded && content && (
+        <div className="px-3 pb-3 text-sm text-gray-300 whitespace-pre-wrap border-t border-gray-800 pt-2 max-h-48 overflow-y-auto leading-relaxed">
+          {content}
+        </div>
+      )}
     </div>
   )
 }

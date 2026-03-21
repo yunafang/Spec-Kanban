@@ -76,6 +76,13 @@ router.post('/api/tasks/:id/action', async (req, res) => {
   res.json({ ok: true })
 })
 
+// GET /api/artifacts/:path — read artifact content
+router.get('/api/artifacts/:artifactPath', (req, res) => {
+  const artifactPath = path.resolve(__dirname, '../data', decodeURIComponent(req.params.artifactPath))
+  if (!fs.existsSync(artifactPath)) { res.status(404).send('Not found'); return }
+  res.type('text/plain').send(fs.readFileSync(artifactPath, 'utf-8'))
+})
+
 // POST /api/scheduler/process — manually trigger queue
 router.post('/api/scheduler/process', (_req, res) => {
   processQueue()
