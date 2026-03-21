@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import LogViewer from '@/components/LogViewer'
 import StageProgress from './StageProgress'
 import { useTaskStore } from '@/store/taskStore'
+import { useUiStore } from '@/store/uiStore'
 
 interface TaskDetailProps {
   taskId: string
@@ -25,6 +26,37 @@ function ChildTasks({ parentId }: { parentId: string }) {
           <span className="text-gray-600">{child.status}</span>
         </div>
       ))}
+    </div>
+  )
+}
+
+function OutputFiles({ taskId }: { taskId: string }) {
+  const [files, setFiles] = useState<string[]>([])
+  const selectFile = useUiStore((s) => s.selectFile)
+
+  useEffect(() => {
+    fetch(`/api/tasks/${taskId}/files`)
+      .then((r) => r.json())
+      .then((data) => setFiles(data.files || []))
+      .catch(() => {})
+  }, [taskId])
+
+  if (files.length === 0) return null
+
+  return (
+    <div className="mb-4 p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
+      <div className="text-xs font-semibold text-emerald-400 mb-2">📦 产出文件 ({files.length})</div>
+      <div className="space-y-1">
+        {files.map((file) => (
+          <button
+            key={file}
+            onClick={() => selectFile(file)}
+            className="w-full text-left px-2 py-1 text-xs text-gray-300 hover:bg-emerald-500/10 rounded cursor-pointer truncate"
+          >
+            📄 {file}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -88,6 +120,11 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
           分支: <code className="bg-gray-800 px-2 py-0.5 rounded">{task.branch}</code>
           {task.merged && <span className="ml-2 text-emerald-400">已合并</span>}
         </div>
+      )}
+
+      {/* Output files — for completed/executing tasks */}
+      {task.status === 'done' && (
+        <OutputFiles taskId={task.id} />
       )}
 
       {/* Human action buttons */}

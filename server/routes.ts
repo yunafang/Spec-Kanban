@@ -337,4 +337,27 @@ router.patch('/api/tasks/:id/issues/:issueId', (req, res) => {
   res.json(issue)
 })
 
+// GET /api/tasks/:id/files — list files changed by a task (from its git branch)
+router.get('/api/tasks/:id/files', async (req, res) => {
+  const tasks = readTasks()
+  const task = tasks.find((t) => t.id === req.params.id)
+  if (!task) { res.json({ files: [] }); return }
+
+  const config = readConfig()
+  const project = config.projects.find((p) => p.name === config.activeProject)
+  if (!project || !task.branch) { res.json({ files: [] }); return }
+
+  try {
+    const { execa } = await import('execa')
+    const { stdout } = await execa('git', ['diff', '--name-only', 'main...', task.branch], {
+      cwd: project.path,
+      reject: false
+    })
+    const files = stdout.trim().split('\n').filter((f) => f.length > 0)
+    res.json({ files })
+  } catch {
+    res.json({ files: [] })
+  }
+})
+
 export default router

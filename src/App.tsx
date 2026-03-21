@@ -8,6 +8,7 @@ import Sidebar from '@/components/layout/Sidebar'
 import TaskTable from '@/components/layout/TaskTable'
 import RightPanel from '@/components/layout/RightPanel'
 import BottomBar from '@/components/layout/BottomBar'
+import FileViewer from '@/components/files/FileViewer'
 import type { Task, WsMessage } from '@/types'
 
 const isDemo = import.meta.env.VITE_DEMO === 'true'
@@ -16,7 +17,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const { setTasks, upsertTask, removeTask } = useTaskStore()
   const { config, setConfig } = useConfigStore()
-  const { sidebarWidth, rightPanelWidth, setSidebarWidth, setRightPanelWidth } = useUiStore()
+  const { sidebarWidth, rightPanelWidth, selectedFile, setSidebarWidth, setRightPanelWidth, selectFile } = useUiStore()
 
   useEffect(() => {
     if (isDemo) {
@@ -93,8 +94,25 @@ export default function App() {
         <ResizeHandle onResize={(delta) => setSidebarWidth(sidebarWidth + delta)} />
 
         {/* Center panel */}
-        <main className="flex-1 overflow-hidden">
-          <TaskTable />
+        <main className="flex-1 overflow-hidden flex flex-col">
+          {selectedFile ? (
+            <>
+              <div className="flex items-center gap-2 px-4 py-1.5 border-b border-gray-800 bg-gray-900/60 shrink-0">
+                <span className="text-xs text-gray-400 flex-1 truncate">📄 {selectedFile}</span>
+                <button
+                  onClick={() => selectFile(null)}
+                  className="text-xs text-gray-500 hover:text-gray-300 cursor-pointer px-2 py-0.5 rounded hover:bg-gray-800"
+                >
+                  ✕ 关闭
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <FileViewer filePath={selectedFile} />
+              </div>
+            </>
+          ) : (
+            <TaskTable />
+          )}
         </main>
 
         <ResizeHandle onResize={(delta) => setRightPanelWidth(rightPanelWidth - delta)} />

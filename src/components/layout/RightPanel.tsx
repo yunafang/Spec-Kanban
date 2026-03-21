@@ -1,13 +1,11 @@
 import { useUiStore } from '@/store/uiStore'
 import { useTaskStore } from '@/store/taskStore'
 import TaskDetail from '@/components/detail/TaskDetail'
-import FileViewer from '@/components/files/FileViewer'
 import IssueList from '@/components/issues/IssueList'
 import IssueForm from '@/components/issues/IssueForm'
 
 const tabs = [
   { key: 'detail' as const, label: '📋 任务详情' },
-  { key: 'file' as const, label: '📄 文件预览' },
   { key: 'issues' as const, label: '💬 Issues' },
 ]
 
@@ -70,16 +68,6 @@ export default function RightPanel() {
           ) : (
             <div className="flex items-center justify-center h-full text-sm text-gray-600">
               选择一个任务查看详情
-            </div>
-          )
-        )}
-
-        {rightTab === 'file' && (
-          selectedFile ? (
-            <FileViewer filePath={selectedFile} />
-          ) : (
-            <div className="flex items-center justify-center h-full text-sm text-gray-600">
-              选择一个文件查看内容
             </div>
           )
         )}

@@ -25,7 +25,7 @@ export const useUiStore = create<UiState>((set) => ({
   setSidebarWidth: (w) => set({ sidebarWidth: Math.max(180, w) }),
   setRightPanelWidth: (w) => set({ rightPanelWidth: Math.max(280, w) }),
   selectTask: (id) => set({ selectedTaskId: id, rightTab: 'detail' }),
-  selectFile: (path) => set({ selectedFile: path, rightTab: 'file' }),
+  selectFile: (path) => set({ selectedFile: path }),
   setRightTab: (tab) => set({ rightTab: tab }),
   setBottomMode: (mode) => set({ bottomMode: mode }),
 }))
