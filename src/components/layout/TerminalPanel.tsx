@@ -54,26 +54,29 @@ export default function TerminalPanel() {
   }
 
   // Parse logs for display — extract readable parts
+  /** Ensure value is always a string */
+  const toStr = (v: unknown): string =>
+    typeof v === 'string' ? v : JSON.stringify(v, null, 2)
+
   const displayLines = logs.split('\n').map((line) => {
     if (!line.trim()) return null
     try {
       const json = JSON.parse(line)
       if (json.result) {
-        // Extract text from markdown code blocks
-        let text = json.result
+        let text = toStr(json.result)
         const codeMatch = text.match(/```json\s*\n?([\s\S]*?)```/)
         if (codeMatch) {
           try {
             const inner = JSON.parse(codeMatch[1])
-            if (inner.design) return { type: 'output', text: inner.design }
-            if (inner.plan) return { type: 'output', text: inner.plan }
+            if (inner.design) return { type: 'output', text: toStr(inner.design) }
+            if (inner.plan) return { type: 'output', text: toStr(inner.plan) }
           } catch {}
           text = text.replace(/```json\s*\n?[\s\S]*?```\s*/g, '').trim()
         }
         if (text) return { type: 'output', text }
         return null
       }
-      if (json.type === 'assistant') return null // skip raw assistant messages
+      if (json.type === 'assistant') return null
       return null
     } catch {
       if (line.startsWith('[stderr]')) {
