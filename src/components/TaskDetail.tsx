@@ -189,26 +189,38 @@ export default function TaskDetail({ task: initialTask, onClose }: TaskDetailPro
           </div>
         )}
 
-        {/* Artifacts with inline content */}
+        {/* Stage outputs — the main preview area */}
         {(task.artifacts.design || task.artifacts.plan) && (
           <div className="mb-4">
-            <h3 className="text-sm font-semibold text-gray-400 mb-2">产出物</h3>
+            <h3 className="text-sm font-semibold text-gray-400 mb-3">阶段产出</h3>
             <div className="space-y-3">
               {task.artifacts.design && (
-                <ArtifactViewer label="📄 设计方案" path={task.artifacts.design} />
+                <ArtifactViewer
+                  label="💡 设计方案"
+                  path={task.artifacts.design}
+                  defaultExpanded={task.humanAction === 'confirm_design'}
+                  accentColor="amber"
+                />
               )}
               {task.artifacts.plan && (
-                <ArtifactViewer label="📋 实施计划" path={task.artifacts.plan} />
+                <ArtifactViewer
+                  label="📝 实施计划"
+                  path={task.artifacts.plan}
+                  defaultExpanded={task.humanAction === 'confirm_plan'}
+                  accentColor="indigo"
+                />
               )}
             </div>
           </div>
         )}
 
-        {/* Log viewer */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-400 mb-2">执行日志</h3>
+        {/* Log viewer — collapsible */}
+        <details className="mb-4">
+          <summary className="text-sm font-semibold text-gray-400 mb-2 cursor-pointer hover:text-gray-300">
+            执行日志 ▸
+          </summary>
           <LogViewer taskId={task.id} />
-        </div>
+        </details>
 
         {/* History */}
         {task.history.length > 0 && (
@@ -234,44 +246,55 @@ export default function TaskDetail({ task: initialTask, onClose }: TaskDetailPro
   )
 }
 
-function ArtifactViewer({ label, path }: { label: string; path: string }) {
-  const [content, setContent] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState(false)
+const accentStyles: Record<string, string> = {
+  amber: 'border-amber-500/30 bg-amber-500/5',
+  indigo: 'border-indigo-500/30 bg-indigo-500/5',
+  emerald: 'border-emerald-500/30 bg-emerald-500/5',
+}
 
+function ArtifactViewer({ label, path, defaultExpanded = false, accentColor = 'indigo' }: {
+  label: string; path: string; defaultExpanded?: boolean; accentColor?: string
+}) {
+  const [content, setContent] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(defaultExpanded)
+  const [loaded, setLoaded] = useState(false)
+
+  // Auto-load when defaultExpanded
   const loadContent = async () => {
-    if (content !== null) {
+    if (loaded) {
       setExpanded(!expanded)
       return
     }
     try {
       const res = await fetch(`/api/artifacts/${encodeURIComponent(path)}`)
       const text = await res.text()
-      // Try to parse JSON and extract readable content
-      try {
-        const json = JSON.parse(text)
-        setContent(json.design || json.plan || json.result || text)
-      } catch {
-        setContent(text)
-      }
+      setContent(text)
+      setLoaded(true)
       setExpanded(true)
     } catch {
       setContent('无法加载')
+      setLoaded(true)
       setExpanded(true)
     }
   }
 
+  // Auto-load on mount if defaultExpanded
+  useState(() => { if (defaultExpanded) loadContent() })
+
+  const style = accentStyles[accentColor] || accentStyles.indigo
+
   return (
-    <div className="bg-gray-800/50 rounded-lg overflow-hidden">
+    <div className={`rounded-lg overflow-hidden border ${style}`}>
       <button
         onClick={loadContent}
-        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left cursor-pointer hover:bg-gray-800 transition-colors"
+        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left cursor-pointer hover:bg-white/5 transition-colors"
       >
-        <span>{label}</span>
-        <span className="text-gray-600 flex-1 truncate">{path}</span>
-        <span className="text-gray-600">{expanded ? '▼' : '▶'}</span>
+        <span className="font-medium">{label}</span>
+        <span className="flex-1" />
+        <span className="text-gray-600 text-xs">{expanded ? '收起' : '展开'}</span>
       </button>
       {expanded && content && (
-        <div className="px-3 pb-3 text-sm text-gray-300 whitespace-pre-wrap border-t border-gray-800 pt-2 max-h-48 overflow-y-auto leading-relaxed">
+        <div className="px-4 pb-4 text-sm text-gray-200 whitespace-pre-wrap border-t border-gray-800/50 pt-3 max-h-64 overflow-y-auto leading-relaxed">
           {content}
         </div>
       )}

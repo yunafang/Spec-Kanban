@@ -10,6 +10,48 @@ import type { Task } from '../src/types/index.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+/** Extract readable content from Claude Code CLI JSON output */
+function extractClaudeOutput(raw: string): { sessionId: string | null; content: string; isSplit: boolean } {
+  try {
+    const json = JSON.parse(raw)
+    const sessionId = json.session_id || json.sessionId || null
+
+    // The actual output is in json.result (string)
+    let text = json.result || ''
+
+    // Try to extract JSON from markdown code blocks in the result
+    const codeBlockMatch = text.match(/```json\s*\n?([\s\S]*?)```/)
+    if (codeBlockMatch) {
+      try {
+        const inner = JSON.parse(codeBlockMatch[1])
+        if (inner.type === 'split' && inner.subtasks) {
+          return { sessionId, content: JSON.stringify(inner, null, 2), isSplit: true }
+        }
+        if (inner.type === 'design' && inner.design) {
+          return { sessionId, content: inner.design, isSplit: false }
+        }
+        if (inner.type === 'plan' && inner.plan) {
+          return { sessionId, content: inner.plan, isSplit: false }
+        }
+      } catch { /* not valid JSON inside code block */ }
+    }
+
+    // Clean up: remove trailing questions like "需要我直接开始实施吗？"
+    text = text.replace(/```json\s*\n?[\s\S]*?```\s*/g, '').trim()
+
+    // If there's still useful text after removing code blocks
+    if (text.length > 10) {
+      return { sessionId, content: text, isSplit: false }
+    }
+
+    // Fallback: return the result as-is
+    return { sessionId, content: json.result || raw, isSplit: false }
+  } catch {
+    // Not JSON at all — return raw
+    return { sessionId: null, content: raw, isSplit: false }
+  }
+}
+
 function getProjectDir(): string | null {
   const config = readConfig()
   if (!config.activeProject) return null
@@ -74,30 +116,21 @@ function startBrainstorm(task: Task, projectDir: string) {
         updateTask(task.id, { status: 'needs_human', humanAction: 'error' })
         return
       }
-      try {
-        const parsed = JSON.parse(result.output)
-        const sessionId = parsed.session_id || parsed.sessionId || null
-        if (parsed.type === 'split') {
-          updateTask(task.id, {
-            status: 'needs_human',
-            humanAction: 'confirm_split',
-            sessionId
-          })
-          saveArtifact(task.id, 'split-proposal', result.output, task.version)
-        } else {
-          updateTask(task.id, {
-            status: 'needs_human',
-            humanAction: 'confirm_design',
-            sessionId
-          })
-          saveArtifact(task.id, 'design', parsed.design || result.output, task.version)
-        }
-      } catch {
+      const { sessionId, content, isSplit } = extractClaudeOutput(result.output)
+      if (isSplit) {
         updateTask(task.id, {
           status: 'needs_human',
-          humanAction: 'confirm_design'
+          humanAction: 'confirm_split',
+          sessionId
         })
-        saveArtifact(task.id, 'design', result.output, task.version)
+        saveArtifact(task.id, 'split-proposal', content, task.version)
+      } else {
+        updateTask(task.id, {
+          status: 'needs_human',
+          humanAction: 'confirm_design',
+          sessionId
+        })
+        saveArtifact(task.id, 'design', content, task.version)
       }
       processQueue()
     },
@@ -123,7 +156,8 @@ export async function advanceTask(taskId: string, action: string, feedback?: str
       spawnClaude(task, planningPrompt(), projectDir, {
         onOutput: (data) => appendLog(taskId, data),
         onComplete: (result) => {
-          saveArtifact(taskId, 'plan', result.output, task.version)
+          const { content } = extractClaudeOutput(result.output)
+          saveArtifact(taskId, 'plan', content, task.version)
           updateTask(taskId, { status: 'needs_human', humanAction: 'confirm_plan' })
           processQueue()
         },
