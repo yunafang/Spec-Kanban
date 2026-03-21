@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { marked } from 'marked'
 
 interface FileViewerProps {
   filePath: string
@@ -34,6 +35,33 @@ function pathBreadcrumbs(filePath: string): string[] {
   return filePath.split('/').filter(Boolean)
 }
 
+function MarkdownPreview({ content }: { content: string }) {
+  const html = useMemo(() => {
+    marked.setOptions({ breaks: true, gfm: true })
+    return marked.parse(content) as string
+  }, [content])
+
+  return (
+    <div
+      className="prose prose-invert prose-sm max-w-none p-6
+        prose-headings:text-gray-100 prose-headings:border-b prose-headings:border-gray-800 prose-headings:pb-2
+        prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
+        prose-p:text-gray-300 prose-p:leading-relaxed
+        prose-a:text-indigo-400
+        prose-strong:text-gray-200
+        prose-code:text-indigo-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
+        prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-800
+        prose-blockquote:border-indigo-500 prose-blockquote:text-gray-400
+        prose-li:text-gray-300
+        prose-table:text-xs
+        prose-th:text-gray-400 prose-th:border-gray-700 prose-th:px-3 prose-th:py-1.5
+        prose-td:border-gray-800 prose-td:px-3 prose-td:py-1.5
+        prose-hr:border-gray-800"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
+}
+
 export default function FileViewer({ filePath, language }: FileViewerProps) {
   const [fileInfo, setFileInfo] = useState<FileInfo | null>(null)
   const [loading, setLoading] = useState(false)
@@ -63,6 +91,7 @@ export default function FileViewer({ filePath, language }: FileViewerProps) {
 
   const breadcrumbs = pathBreadcrumbs(filePath)
   const langTag = language || getLanguageTag(filePath)
+  const isMarkdown = filePath.endsWith('.md') || filePath.endsWith('.mdx')
 
   if (loading) {
     return (
@@ -118,9 +147,13 @@ export default function FileViewer({ filePath, language }: FileViewerProps) {
       {/* File content */}
       {fileInfo ? (
         <div className="flex-1 overflow-auto">
-          <pre className="text-xs font-mono text-gray-300 p-4 leading-relaxed whitespace-pre-wrap break-all">
-            {fileInfo.content}
-          </pre>
+          {isMarkdown ? (
+            <MarkdownPreview content={fileInfo.content} />
+          ) : (
+            <pre className="text-xs font-mono text-gray-300 p-4 leading-relaxed whitespace-pre-wrap break-all">
+              {fileInfo.content}
+            </pre>
+          )}
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center">
