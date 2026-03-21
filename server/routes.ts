@@ -14,6 +14,63 @@ const upload = multer({ dest: '/tmp/spec-kanban-uploads/', limits: { fileSize: 1
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const router = Router()
 
+// --- File tree helpers ---
+
+interface FileNode {
+  name: string
+  path: string
+  type: 'file' | 'directory'
+  children?: FileNode[]
+}
+
+const IGNORED_DIRS = new Set([
+  'node_modules', '.git', 'dist', 'data', '.superpowers', '.DS_Store', '__pycache__'
+])
+
+function readDir(dir: string, rootDir: string, depth: number, maxDepth: number): FileNode[] {
+  let entries: fs.Dirent[]
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return []
+  }
+
+  const nodes: FileNode[] = []
+
+  for (const entry of entries) {
+    if (IGNORED_DIRS.has(entry.name)) continue
+
+    const fullPath = path.join(dir, entry.name)
+    const relativePath = path.relative(rootDir, fullPath)
+
+    if (entry.isDirectory()) {
+      const node: FileNode = {
+        name: entry.name,
+        path: relativePath,
+        type: 'directory',
+      }
+      if (depth < maxDepth) {
+        node.children = readDir(fullPath, rootDir, depth + 1, maxDepth)
+      }
+      nodes.push(node)
+    } else if (entry.isFile()) {
+      nodes.push({
+        name: entry.name,
+        path: relativePath,
+        type: 'file',
+      })
+    }
+  }
+
+  // Sort: directories first, then files, alphabetically within each group
+  nodes.sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'directory' ? -1 : 1
+    return a.name.localeCompare(b.name)
+  })
+
+  return nodes
+}
+
 // GET /api/tasks
 router.get('/api/tasks', (_req, res) => {
   res.json(readTasks())
@@ -173,6 +230,71 @@ router.post('/api/upload/parse', upload.single('file'), (req, res) => {
     // Clean up temp file
     try { fs.unlinkSync(file.path) } catch {}
   }
+})
+
+// GET /api/files/tree — read project directory tree
+router.get('/api/files/tree', (req, res) => {
+  const config = readConfig()
+  if (!config.activeProject) { res.json([]); return }
+  const project = config.projects.find(p => p.name === config.activeProject)
+  if (!project) { res.json([]); return }
+
+  const baseDir = req.query.dir
+    ? path.join(project.path, req.query.dir as string)
+    : project.path
+  const maxDepth = parseInt(req.query.depth as string) || 4
+
+  // Security: verify baseDir is within project.path
+  const resolved = path.resolve(baseDir)
+  if (!resolved.startsWith(path.resolve(project.path))) {
+    res.status(403).json({ error: 'Access denied' }); return
+  }
+
+  const tree = readDir(resolved, project.path, 0, maxDepth)
+  res.json(tree)
+})
+
+// GET /api/files/content — read a single file's content
+router.get('/api/files/content', (req, res) => {
+  const filePath = req.query.path as string
+  if (!filePath) { res.status(400).json({ error: 'path required' }); return }
+
+  const config = readConfig()
+  const project = config.projects.find(p => p.name === config.activeProject)
+  if (!project) { res.status(404).json({ error: 'No active project' }); return }
+
+  const fullPath = path.resolve(project.path, filePath)
+
+  // SECURITY: path traversal protection
+  if (!fullPath.startsWith(path.resolve(project.path))) {
+    res.status(403).json({ error: 'Access denied' }); return
+  }
+
+  if (!fs.existsSync(fullPath)) { res.status(404).json({ error: 'File not found' }); return }
+
+  const stat = fs.statSync(fullPath)
+  if (stat.size > 1024 * 1024) {
+    res.json({ content: '[文件过大，超过 1MB]', language: '', size: stat.size }); return
+  }
+
+  // Detect binary
+  const buffer = Buffer.alloc(512)
+  const fd = fs.openSync(fullPath, 'r')
+  const bytesRead = fs.readSync(fd, buffer, 0, 512, 0)
+  fs.closeSync(fd)
+  if (buffer.slice(0, bytesRead).includes(0)) {
+    res.json({ content: '[二进制文件]', language: '', size: stat.size }); return
+  }
+
+  const content = fs.readFileSync(fullPath, 'utf-8')
+  const ext = path.extname(fullPath).toLowerCase()
+  const langMap: Record<string, string> = {
+    '.ts': 'typescript', '.tsx': 'typescript', '.js': 'javascript', '.jsx': 'javascript',
+    '.json': 'json', '.md': 'markdown', '.css': 'css', '.html': 'html',
+    '.py': 'python', '.rs': 'rust', '.go': 'go', '.yaml': 'yaml', '.yml': 'yaml',
+    '.sh': 'shell', '.sql': 'sql', '.toml': 'toml',
+  }
+  res.json({ content, language: langMap[ext] || '', size: stat.size })
 })
 
 export default router
