@@ -54,14 +54,47 @@ function HumanActionPanel({ task, feedback, setFeedback, onAction }: {
     task.humanAction === 'confirm_merge' ? '代码合并' :
     task.humanAction === 'error' ? '错误' : ''
 
-  // Auto-load artifact content
+  // Auto-load artifact content — try artifact file first, fallback to log
   useEffect(() => {
-    if (!artifactPath) return
-    fetch(`/api/files/content?path=${encodeURIComponent(artifactPath)}`)
-      .then(r => r.json())
-      .then(data => setArtifactContent(data.content || null))
-      .catch(() => setArtifactContent(null))
-  }, [artifactPath])
+    if (artifactPath) {
+      fetch(`/api/files/content?path=${encodeURIComponent(artifactPath)}`)
+        .then(r => r.json())
+        .then(data => setArtifactContent(data.content || null))
+        .catch(() => loadFromLog())
+    } else {
+      loadFromLog()
+    }
+
+    function loadFromLog() {
+      // Fallback: extract readable content from task log
+      fetch(`/api/tasks/${task.id}/log`)
+        .then(r => r.text())
+        .then(logText => {
+          if (!logText.trim()) { setArtifactContent(null); return }
+          // Parse log to extract design/plan content
+          for (const line of logText.split('\n')) {
+            try {
+              const json = JSON.parse(line)
+              const result = json.result || ''
+              if (!result) continue
+              // Extract from markdown code blocks
+              const codeMatch = result.match(/```json\s*\n?([\s\S]*?)```/)
+              if (codeMatch) {
+                try {
+                  const inner = JSON.parse(codeMatch[1])
+                  if (inner.design) { setArtifactContent(typeof inner.design === 'string' ? inner.design : JSON.stringify(inner.design, null, 2)); return }
+                  if (inner.plan) { setArtifactContent(typeof inner.plan === 'string' ? inner.plan : JSON.stringify(inner.plan, null, 2)); return }
+                } catch {}
+              }
+              // Use result text directly
+              if (result.length > 20) { setArtifactContent(result); return }
+            } catch {}
+          }
+          setArtifactContent(null)
+        })
+        .catch(() => setArtifactContent(null))
+    }
+  }, [artifactPath, task.id])
 
   const borderColor =
     task.humanAction === 'confirm_design' ? 'border-amber-500/30' :
