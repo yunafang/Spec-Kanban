@@ -22,8 +22,8 @@ AI-powered task management system with a VS Code-like IDE interface. Create task
 ### Install & Run
 
 ```bash
-git clone https://github.com/yunafang/Superpower-Kanban.git
-cd Superpower-Kanban
+git clone https://github.com/yunafang/Spec-Kanban.git
+cd Spec-Kanban
 npm install
 npm run dev
 ```
