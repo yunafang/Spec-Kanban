@@ -2,7 +2,31 @@
 
 AI 驱动的任务管理系统，拥有类 VS Code 的 IDE 界面。用自然语言创建任务，让 Claude AI 通过结构化工作流自动执行 —— 每个关键步骤都有人工审批门控。
 
-![主界面](docs/screenshots/main-view.png)
+## 界面预览
+
+### 人工审批门控
+
+AI 完成 Brainstorm 后自动暂停，展示方案摘要，等待人工审阅确认后再推进到下一阶段。支持「确认通过」「拒绝」「打回重做」等操作。
+
+![人工审批门控](docs/screenshots/task-detail.png)
+
+### 多任务并行与通知
+
+多个任务同时运行时，红色角标提醒待处理的人工确认数量。终端面板实时展示 Claude Code 的执行输出。
+
+![多任务并行](docs/screenshots/screenshot-4.png)
+
+### Issue 反馈系统
+
+对 AI 生成的方案提出修改意见，指定反馈所属阶段。AI 会在下次执行时自动读取 Issue 并调整方案。
+
+![Issue 反馈](docs/screenshots/screenshot-5.png)
+
+### 子任务拆分与执行追踪
+
+复杂需求自动拆解为子任务，每个子任务独立走完 Brainstorm → Planning → Executing 流程，右侧面板实时追踪各子任务状态。
+
+![子任务拆分](docs/screenshots/screenshot-6.png)
 
 ## 功能特性
 
@@ -13,8 +37,7 @@ AI 驱动的任务管理系统，拥有类 VS Code 的 IDE 界面。用自然语
 - **多项目支持** — 在多个 Git 仓库间无缝切换
 - **Issue 反馈系统** — 对 AI 生成的设计和方案提出修改意见
 - **终端集成** — xterm.js 嵌入式终端，实时查看执行日志
-
-![任务详情](docs/screenshots/task-detail.png)
+- **子任务拆分** — 复杂需求自动拆解，各子任务独立执行
 
 ## 快速开始
 
