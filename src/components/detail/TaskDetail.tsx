@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import StageProgress from './StageProgress'
 import { useTaskStore } from '@/store/taskStore'
 import { useUiStore } from '@/store/uiStore'
@@ -14,7 +14,8 @@ const statusLabels: Record<string, string> = {
 }
 
 function ChildTasks({ parentId }: { parentId: string }) {
-  const children = useTaskStore((s) => s.tasks.filter((t) => t.parentId === parentId))
+  const allTasks = useTaskStore((s) => s.tasks)
+  const children = useMemo(() => allTasks.filter((t) => t.parentId === parentId), [allTasks, parentId])
   return (
     <div className="space-y-1">
       {children.map((child) => (
