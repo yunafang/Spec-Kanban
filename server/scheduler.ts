@@ -132,7 +132,7 @@ export function processQueue() {
 
   if (available <= 0) return
 
-  const pending = tasks.filter((t) => t.status === 'inbox' && !t.parentId)
+  const pending = tasks.filter((t) => t.status === 'inbox' && (!t.children || t.children.length === 0))
   const toStart = pending.slice(0, available)
 
   for (const task of toStart) {
@@ -246,6 +246,12 @@ export async function advanceTask(taskId: string, action: string, feedback?: str
     }
 
     case 'confirm_split': {
+      // If children already exist (from a previous confirm), just update parent status
+      if (task.children && task.children.length > 0) {
+        updateTask(taskId, { status: 'executing', humanAction: null })
+        processQueue()
+        break
+      }
       const artifactPath = path.resolve(
         __dirname, `../data/artifacts/${taskId}/split-proposal-v${task.version}.md`
       )
@@ -283,7 +289,7 @@ export async function advanceTask(taskId: string, action: string, feedback?: str
           broadcast({ type: 'task:created', payload: childTask })
         }
         writeTasks(allTasks)
-        updateTask(taskId, { children: childIds, status: 'inbox', humanAction: null })
+        updateTask(taskId, { children: childIds, status: 'executing', humanAction: null })
       } catch {
         updateTask(taskId, { status: 'needs_human', humanAction: 'error' })
       }
