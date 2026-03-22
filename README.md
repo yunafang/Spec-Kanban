@@ -1,25 +1,29 @@
-# Superpower Kanban
+# Spec Kanban
 
-AI-powered task management system with a VS Code-like IDE interface. Create tasks in natural language, let Claude AI execute them through structured workflows — with human approval gates at every critical step.
+AI 驱动的任务管理系统，拥有类 VS Code 的 IDE 界面。用自然语言创建任务，让 Claude AI 通过结构化工作流自动执行 —— 每个关键步骤都有人工审批门控。
 
-## Features
+![主界面](docs/screenshots/main-view.png)
 
-- **Multi-stage AI workflows** — Brainstorm → Planning → Executing, with human confirmation gates
-- **Built-in Skills** — Superpowers (full flow), Quick Fix, Code Review, Refactor, Docs, Test
-- **IDE-like interface** — File tree, task board, terminal, artifact preview in a three-column layout
-- **Real-time updates** — WebSocket-powered live task status and log streaming
-- **Multi-project support** — Switch between Git repositories seamlessly
-- **Issue system** — Provide feedback on AI-generated designs and plans
-- **Terminal integration** — xterm.js embedded terminal with live execution logs
+## 功能特性
 
-## Quick Start
+- **多阶段 AI 工作流** — Brainstorm → Planning → Executing，关键节点人工确认
+- **内置技能系统** — Superpowers 全流程、快速修复、代码审查、重构优化、文档生成、测试用例
+- **IDE 风格界面** — 文件树、看板、终端、产物预览，三栏布局
+- **实时更新** — WebSocket 驱动的任务状态和日志实时推送
+- **多项目支持** — 在多个 Git 仓库间无缝切换
+- **Issue 反馈系统** — 对 AI 生成的设计和方案提出修改意见
+- **终端集成** — xterm.js 嵌入式终端，实时查看执行日志
 
-### Prerequisites
+![任务详情](docs/screenshots/task-detail.png)
+
+## 快速开始
+
+### 前置条件
 
 - Node.js 18+
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed
+- 已安装 [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
 
-### Install & Run
+### 安装与运行
 
 ```bash
 git clone https://github.com/yunafang/Spec-Kanban.git
@@ -28,34 +32,34 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173
+打开 http://localhost:5173
 
-### Import a project
+### 导入项目
 
 ```bash
 npm run dev -- --project /path/to/your/git/repo
 ```
 
-## Scripts
+## 命令
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start dev server with project CLI |
-| `npm run dev:vite` | Start Vite dev server only |
-| `npm run build` | Production build |
-| `npm run preview` | Preview production build |
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` | 启动开发服务器（含项目 CLI） |
+| `npm run dev:vite` | 仅启动 Vite 开发服务器 |
+| `npm run build` | 生产环境构建 |
+| `npm run preview` | 预览生产构建 |
 
-## Tech Stack
+## 技术栈
 
-- **Frontend**: React, Zustand, Tailwind CSS, xterm.js
-- **Backend**: Express (Vite plugin), WebSocket, node-pty
+- **前端**: React、Zustand、Tailwind CSS、xterm.js
+- **后端**: Express（Vite 插件模式）、WebSocket、node-pty
 - **AI**: Claude Code CLI
-- **Build**: Vite, TypeScript
+- **构建**: Vite、TypeScript
 
-## Acknowledgements
+## 鸣谢
 
-This project is inspired by and built upon the [Superpowers](https://github.com/nicekid1/Superpowers) workflow methodology. The core "Brainstorm → Planning → Executing" paradigm with human approval gates originates from the Superpowers approach to AI-assisted development.
+本项目的核心工作流理念源自 [Superpowers](https://github.com/nicekid1/Superpowers) 方法论。"Brainstorm → Planning → Executing" 的多阶段范式以及人工审批门控机制，均受到 Superpowers 在 AI 辅助开发领域的启发。感谢 Superpowers 项目的开创性工作。
 
-## License
+## 开源协议
 
 [MIT](LICENSE)
