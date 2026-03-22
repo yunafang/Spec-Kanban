@@ -7,16 +7,16 @@ function getFileIcon(name: string): { label: string; className: string } {
   switch (ext) {
     case 'ts':
     case 'tsx':
-      return { label: 'TS', className: 'text-blue-400 font-bold' }
+      return { label: 'TS', className: 'text-blue-600 font-bold' }
     case 'js':
     case 'jsx':
-      return { label: 'JS', className: 'text-yellow-400 font-bold' }
+      return { label: 'JS', className: 'text-yellow-600 font-bold' }
     case 'json':
-      return { label: '{}', className: 'text-gray-400' }
+      return { label: '{}', className: 'text-gray-500' }
     case 'md':
-      return { label: 'MD', className: 'text-green-400 font-bold' }
+      return { label: 'MD', className: 'text-green-600 font-bold' }
     case 'css':
-      return { label: '#', className: 'text-pink-400 font-bold' }
+      return { label: '#', className: 'text-pink-600 font-bold' }
     default:
       return { label: '\u{1F4C4}', className: '' }
   }
@@ -58,7 +58,7 @@ function FileTreeNode({ node, depth }: { node: FileNode; depth: number }) {
     <div>
       <button
         onClick={handleClick}
-        className="flex items-center w-full text-left hover:bg-gray-800/60 px-2 py-0.5 text-sm text-gray-300 hover:text-white transition-colors group"
+        className="flex items-center w-full text-left hover:bg-gray-100 px-2 py-0.5 text-sm text-gray-700 hover:text-gray-900 transition-colors group"
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
         {isDir ? (
@@ -126,7 +126,7 @@ export default function FileTree() {
 
   if (error) {
     return (
-      <div className="px-3 py-4 text-xs text-red-400">
+      <div className="px-3 py-4 text-xs text-red-600">
         Error: {error}
       </div>
     )

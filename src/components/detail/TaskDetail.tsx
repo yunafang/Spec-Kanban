@@ -1,6 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
-import { marked } from 'marked'
-import LogViewer from '@/components/LogViewer'
+import { useState, useEffect } from 'react'
 import StageProgress from './StageProgress'
 import { useTaskStore } from '@/store/taskStore'
 import { useUiStore } from '@/store/uiStore'
@@ -21,11 +19,11 @@ function ChildTasks({ parentId }: { parentId: string }) {
     <div className="space-y-1">
       {children.map((child) => (
         <div key={child.id} className="flex items-center gap-2 text-xs">
-          <span className={child.status === 'done' ? 'text-emerald-400' : 'text-gray-500'}>
+          <span className={child.status === 'done' ? 'text-green-600' : 'text-gray-500'}>
             {child.status === 'done' ? '✅' : '⏳'}
           </span>
-          <span className="text-gray-300">{child.title}</span>
-          <span className="text-gray-600">{child.status}</span>
+          <span className="text-gray-700">{child.title}</span>
+          <span className="text-gray-400">{child.status}</span>
         </div>
       ))}
     </div>
@@ -40,12 +38,17 @@ function HumanActionPanel({ task, feedback, setFeedback, onAction }: {
 }) {
   const [artifactContent, setArtifactContent] = useState<string | null>(null)
   const selectFile = useUiStore((s) => s.selectFile)
+  const setPreviewArtifact = useUiStore((s) => s.setPreviewArtifact)
 
   // Determine which artifact to show
   const artifactPath =
     task.humanAction === 'confirm_design' ? task.artifacts?.design :
     task.humanAction === 'confirm_plan' ? task.artifacts?.plan :
     null
+
+  const artifactStage =
+    task.humanAction === 'confirm_design' ? 'design' :
+    task.humanAction === 'confirm_plan' ? 'plan' : 'design'
 
   const actionLabel =
     task.humanAction === 'confirm_design' ? '设计方案' :
@@ -66,18 +69,15 @@ function HumanActionPanel({ task, feedback, setFeedback, onAction }: {
     }
 
     function loadFromLog() {
-      // Fallback: extract readable content from task log
       fetch(`/api/tasks/${task.id}/log`)
         .then(r => r.text())
         .then(logText => {
           if (!logText.trim()) { setArtifactContent(null); return }
-          // Parse log to extract design/plan content
           for (const line of logText.split('\n')) {
             try {
               const json = JSON.parse(line)
               const result = json.result || ''
               if (!result) continue
-              // Extract from markdown code blocks
               const codeMatch = result.match(/```json\s*\n?([\s\S]*?)```/)
               if (codeMatch) {
                 try {
@@ -86,7 +86,6 @@ function HumanActionPanel({ task, feedback, setFeedback, onAction }: {
                   if (inner.plan) { setArtifactContent(typeof inner.plan === 'string' ? inner.plan : JSON.stringify(inner.plan, null, 2)); return }
                 } catch {}
               }
-              // Use result text directly
               if (result.length > 20) { setArtifactContent(result); return }
             } catch {}
           }
@@ -96,48 +95,61 @@ function HumanActionPanel({ task, feedback, setFeedback, onAction }: {
     }
   }, [artifactPath, task.id])
 
+  const openInCenter = () => {
+    if (artifactPath) {
+      selectFile(artifactPath)
+    } else if (artifactContent) {
+      setPreviewArtifact({ content: artifactContent, title: task.title, taskId: task.id, stage: artifactStage })
+    }
+  }
+
   const borderColor =
-    task.humanAction === 'confirm_design' ? 'border-amber-500/30' :
-    task.humanAction === 'confirm_plan' ? 'border-indigo-500/30' :
-    task.humanAction === 'confirm_merge' ? 'border-emerald-500/30' :
-    'border-red-500/30'
+    task.humanAction === 'confirm_design' ? 'border-amber-200' :
+    task.humanAction === 'confirm_plan' ? 'border-blue-200' :
+    task.humanAction === 'confirm_merge' ? 'border-green-200' :
+    'border-red-200'
 
   const bgColor =
-    task.humanAction === 'confirm_design' ? 'bg-amber-500/5' :
-    task.humanAction === 'confirm_plan' ? 'bg-indigo-500/5' :
-    task.humanAction === 'confirm_merge' ? 'bg-emerald-500/5' :
-    'bg-red-500/5'
+    task.humanAction === 'confirm_design' ? 'bg-amber-50' :
+    task.humanAction === 'confirm_plan' ? 'bg-blue-50' :
+    task.humanAction === 'confirm_merge' ? 'bg-green-50' :
+    'bg-red-50'
+
+  // Truncate content for right panel summary
+  const summaryContent = artifactContent
+    ? artifactContent.length > 200 ? artifactContent.slice(0, 200) + '...' : artifactContent
+    : null
 
   return (
     <div className={`mb-4 border ${borderColor} ${bgColor} rounded-lg overflow-hidden`}>
       {/* Header */}
-      <div className="px-4 py-2.5 flex items-center justify-between border-b border-gray-800/50">
-        <div className="text-sm font-semibold text-gray-200">
+      <div className="px-4 py-2.5 flex items-center justify-between border-b border-gray-200">
+        <div className="text-sm font-semibold text-gray-800">
           📋 {actionLabel}待确认
         </div>
-        {artifactPath && (
+        {artifactContent && (
           <button
-            onClick={() => selectFile(artifactPath)}
-            className="text-[10px] text-indigo-400 hover:text-indigo-300 cursor-pointer"
+            onClick={openInCenter}
+            className="text-[10px] text-blue-600 hover:text-blue-500 cursor-pointer"
           >
-            在编辑器中打开 →
+            在中间面板查看全文 →
           </button>
         )}
       </div>
 
-      {/* Artifact content preview */}
-      {artifactContent && (
-        <div className="max-h-80 overflow-y-auto px-4 py-3 border-b border-gray-800/50">
-          {artifactPath?.endsWith('.md') ? (
-            <MarkdownInline content={artifactContent} />
-          ) : (
-            <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap leading-relaxed">{artifactContent}</pre>
-          )}
+      {/* Truncated preview — click to open full in center */}
+      {summaryContent && (
+        <div
+          className="px-4 py-3 border-b border-gray-200 cursor-pointer hover:bg-white/50 transition-colors"
+          onClick={openInCenter}
+        >
+          <pre className="text-xs text-gray-600 font-mono whitespace-pre-wrap leading-relaxed line-clamp-4">{summaryContent}</pre>
+          <div className="mt-1.5 text-[10px] text-blue-600">点击查看全文 →</div>
         </div>
       )}
 
       {task.humanAction === 'error' && !artifactContent && (
-        <div className="px-4 py-3 text-sm text-red-400 border-b border-gray-800/50">
+        <div className="px-4 py-3 text-sm text-red-600 border-b border-gray-200">
           执行出错，请查看下方执行日志了解详情
         </div>
       )}
@@ -145,7 +157,7 @@ function HumanActionPanel({ task, feedback, setFeedback, onAction }: {
       {/* Feedback + actions */}
       <div className="px-4 py-3">
         <textarea
-          className="w-full bg-gray-800/80 rounded-lg px-3 py-2 mb-3 text-xs outline-none focus:ring-1 focus:ring-indigo-500 h-14 resize-none"
+          className="w-full bg-gray-100 rounded-lg px-3 py-2 mb-3 text-xs outline-none focus:ring-1 focus:ring-blue-500 h-14 resize-none"
           placeholder="修改意见（可选）..."
           value={feedback}
           onChange={(e) => setFeedback(e.target.value)}
@@ -154,26 +166,26 @@ function HumanActionPanel({ task, feedback, setFeedback, onAction }: {
           {task.humanAction !== 'error' && (
             <button
               onClick={() => onAction(task.humanAction!)}
-              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-medium cursor-pointer"
+              className="px-4 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-xs font-medium cursor-pointer"
             >
               ✓ 确认通过
             </button>
           )}
           <button
             onClick={() => onAction('reject')}
-            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs font-medium cursor-pointer"
+            className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-lg text-xs font-medium cursor-pointer"
           >
             拒绝
           </button>
           <button
             onClick={() => onAction('rollback_to_brainstorm')}
-            className="px-3 py-1.5 bg-amber-600/20 text-amber-400 hover:bg-amber-600/30 rounded-lg text-xs font-medium cursor-pointer"
+            className="px-3 py-1.5 bg-amber-100 text-amber-600 hover:bg-amber-100 rounded-lg text-xs font-medium cursor-pointer"
           >
             ↩ 回退
           </button>
           <button
             onClick={() => onAction('cancel')}
-            className="px-3 py-1.5 bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded-lg text-xs font-medium cursor-pointer"
+            className="px-3 py-1.5 bg-red-100 text-red-600 hover:bg-red-100 rounded-lg text-xs font-medium cursor-pointer"
           >
             取消
           </button>
@@ -182,40 +194,13 @@ function HumanActionPanel({ task, feedback, setFeedback, onAction }: {
               const uiStore = useUiStore.getState()
               uiStore.setRightTab('issues')
             }}
-            className="px-3 py-1.5 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 rounded-lg text-xs font-medium cursor-pointer"
+            className="px-3 py-1.5 bg-blue-100 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-medium cursor-pointer"
           >
             💬 提 Issue
           </button>
         </div>
       </div>
     </div>
-  )
-}
-
-/** Inline markdown renderer for artifact preview */
-function MarkdownInline({ content }: { content: string }) {
-  const html = useMemo(() => {
-    marked.setOptions({ breaks: true, gfm: true })
-    return marked.parse(content) as string
-  }, [content])
-
-  return (
-    <div
-      className="prose prose-invert prose-sm max-w-none
-        prose-headings:text-gray-100 prose-headings:border-b prose-headings:border-gray-800/30 prose-headings:pb-1
-        prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
-        prose-p:text-gray-300 prose-p:leading-relaxed prose-p:text-xs
-        prose-a:text-indigo-400
-        prose-strong:text-gray-200
-        prose-code:text-indigo-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px]
-        prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-800 prose-pre:text-[11px]
-        prose-blockquote:border-indigo-500 prose-blockquote:text-gray-400
-        prose-li:text-gray-300 prose-li:text-xs
-        prose-table:text-[11px]
-        prose-th:text-gray-400 prose-th:border-gray-700 prose-th:px-2 prose-th:py-1
-        prose-td:border-gray-800 prose-td:px-2 prose-td:py-1"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
   )
 }
 
@@ -233,8 +218,8 @@ function CodeDiff({ taskId, branch }: { taskId: string; branch: string }) {
 
   return (
     <div className="mb-4">
-      <h3 className="text-sm font-semibold text-gray-400 mb-2">代码变更</h3>
-      <pre className="text-xs font-mono text-gray-300 bg-gray-950 rounded-lg p-3 whitespace-pre-wrap max-h-48 overflow-y-auto">{diff}</pre>
+      <h3 className="text-sm font-semibold text-gray-600 mb-2">代码变更</h3>
+      <pre className="text-xs font-mono text-gray-700 bg-white rounded-lg p-3 whitespace-pre-wrap max-h-48 overflow-y-auto">{diff}</pre>
     </div>
   )
 }
@@ -253,14 +238,14 @@ function OutputFiles({ taskId }: { taskId: string }) {
   if (files.length === 0) return null
 
   return (
-    <div className="mb-4 p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
-      <div className="text-xs font-semibold text-emerald-400 mb-2">📦 产出文件 ({files.length})</div>
+    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+      <div className="text-xs font-semibold text-green-600 mb-2">📦 产出文件 ({files.length})</div>
       <div className="space-y-1">
         {files.map((file) => (
           <button
             key={file}
             onClick={() => selectFile(file)}
-            className="w-full text-left px-2 py-1 text-xs text-gray-300 hover:bg-emerald-500/10 rounded cursor-pointer truncate"
+            className="w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-green-50 rounded cursor-pointer truncate"
           >
             📄 {file}
           </button>
@@ -276,7 +261,7 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
 
   if (!task) {
     return (
-      <div className="flex items-center justify-center h-full text-sm text-gray-600">
+      <div className="flex items-center justify-center h-full text-sm text-gray-400">
         选择一个任务查看详情
       </div>
     )
@@ -295,7 +280,7 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
     <div className="h-full overflow-y-auto p-5">
       {/* Header */}
       <div className="mb-4">
-        <h2 className="text-lg font-bold text-gray-100">{task.title}</h2>
+        <h2 className="text-lg font-bold text-gray-900">{task.title}</h2>
         <span className="text-xs text-gray-500">
           {statusLabels[task.status]} {task.version > 1 && `· v${task.version}`}
         </span>
@@ -303,8 +288,8 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
 
       {/* Description */}
       <div className="mb-4">
-        <h3 className="text-sm font-semibold text-gray-400 mb-1">描述</h3>
-        <p className="text-sm text-gray-300 whitespace-pre-wrap">{task.description}</p>
+        <h3 className="text-sm font-semibold text-gray-600 mb-1">描述</h3>
+        <p className="text-sm text-gray-700 whitespace-pre-wrap">{task.description}</p>
       </div>
 
       {/* Stage progress pipeline */}
@@ -326,8 +311,8 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
       {/* Branch info */}
       {task.branch && (
         <div className="mb-4 text-xs text-gray-500">
-          分支: <code className="bg-gray-800 px-2 py-0.5 rounded">{task.branch}</code>
-          {task.merged && <span className="ml-2 text-emerald-400">已合并</span>}
+          分支: <code className="bg-gray-100 px-2 py-0.5 rounded">{task.branch}</code>
+          {task.merged && <span className="ml-2 text-green-600">已合并</span>}
         </div>
       )}
 
@@ -348,14 +333,14 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
 
       {/* Rollback actions -- shown when no humanAction pending */}
       {!task.humanAction && task.status !== 'inbox' && (
-        <div className="mb-4 p-3 bg-gray-800/50 border border-gray-700 rounded-lg">
+        <div className="mb-4 p-3 bg-gray-50 border border-gray-300 rounded-lg">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-400">操作</span>
+            <span className="text-xs text-gray-600 font-medium">操作</span>
             <div className="flex gap-2">
               {task.status === 'done' && task.merged && (
                 <button
                   onClick={() => handleAction('rollback_code')}
-                  className="px-3 py-1.5 bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded text-xs font-medium cursor-pointer"
+                  className="px-3 py-1.5 bg-red-100 text-red-600 hover:bg-red-100 rounded text-xs font-medium cursor-pointer"
                 >
                   回滚代码 (git revert)
                 </button>
@@ -363,21 +348,21 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
               {task.status === 'done' && !task.merged && task.branch && (
                 <button
                   onClick={() => handleAction('rollback_branch')}
-                  className="px-3 py-1.5 bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded text-xs font-medium cursor-pointer"
+                  className="px-3 py-1.5 bg-red-100 text-red-600 hover:bg-red-100 rounded text-xs font-medium cursor-pointer"
                 >
                   删除分支
                 </button>
               )}
               <button
                 onClick={() => handleAction('rollback_to_brainstorm')}
-                className="px-3 py-1.5 bg-amber-600/20 text-amber-400 hover:bg-amber-600/30 rounded text-xs font-medium cursor-pointer"
+                className="px-3 py-1.5 bg-amber-100 text-amber-600 hover:bg-amber-100 rounded text-xs font-medium cursor-pointer"
               >
                 回退到 Brainstorm
               </button>
               {(task.status === 'brainstorm' || task.status === 'planning' || task.status === 'executing') && (
                 <button
                   onClick={() => handleAction('cancel')}
-                  className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs font-medium cursor-pointer"
+                  className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded text-xs font-medium cursor-pointer"
                 >
                   停止
                 </button>
@@ -387,18 +372,10 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
         </div>
       )}
 
-      {/* Log viewer -- collapsible */}
-      <details className="mb-4">
-        <summary className="text-sm font-semibold text-gray-400 mb-2 cursor-pointer hover:text-gray-300">
-          执行日志 ▸
-        </summary>
-        <LogViewer taskId={task.id} />
-      </details>
-
       {/* History */}
       {(task.history?.length || 0) > 0 && (
         <div className="mt-4">
-          <h3 className="text-sm font-semibold text-gray-400 mb-2">历史</h3>
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">历史</h3>
           {(task.history || []).map((h, i) => (
             <div key={i} className="text-xs text-gray-500 mb-1">
               {h.at.slice(0, 16)} — {h.action} (v{h.fromVersion}) {h.reason && `— ${h.reason}`}
@@ -410,7 +387,7 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
       {/* Children tasks */}
       {(task.children?.length || 0) > 0 && (
         <div className="mt-4">
-          <h3 className="text-sm font-semibold text-gray-400 mb-2">子任务</h3>
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">子任务</h3>
           <ChildTasks parentId={task.id} />
         </div>
       )}

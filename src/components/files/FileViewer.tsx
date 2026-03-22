@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { marked } from 'marked'
+import { useUiStore } from '@/store/uiStore'
+import { useTaskStore } from '@/store/taskStore'
 
 interface FileViewerProps {
   filePath: string
@@ -43,29 +45,39 @@ function MarkdownPreview({ content }: { content: string }) {
 
   return (
     <div
-      className="prose prose-invert prose-sm max-w-none p-6
-        prose-headings:text-gray-100 prose-headings:border-b prose-headings:border-gray-800 prose-headings:pb-2
+      className="prose prose-sm max-w-none p-6
+        prose-headings:text-gray-900 prose-headings:border-b prose-headings:border-gray-200 prose-headings:pb-2
         prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
-        prose-p:text-gray-300 prose-p:leading-relaxed
-        prose-a:text-indigo-400
-        prose-strong:text-gray-200
-        prose-code:text-indigo-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
-        prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-800
-        prose-blockquote:border-indigo-500 prose-blockquote:text-gray-400
-        prose-li:text-gray-300
+        prose-p:text-gray-700 prose-p:leading-relaxed
+        prose-a:text-blue-600
+        prose-strong:text-gray-900
+        prose-code:text-blue-700 prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
+        prose-pre:bg-gray-50 prose-pre:border prose-pre:border-gray-200
+        prose-blockquote:border-blue-400 prose-blockquote:text-gray-500
+        prose-li:text-gray-700
         prose-table:text-xs
-        prose-th:text-gray-400 prose-th:border-gray-700 prose-th:px-3 prose-th:py-1.5
-        prose-td:border-gray-800 prose-td:px-3 prose-td:py-1.5
-        prose-hr:border-gray-800"
+        prose-th:text-gray-500 prose-th:border-gray-300 prose-th:px-3 prose-th:py-1.5
+        prose-td:border-gray-200 prose-td:px-3 prose-td:py-1.5
+        prose-hr:border-gray-200"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   )
+}
+
+/** Parse artifact path to extract task ID and stage label */
+function parseArtifactPath(filePath: string): { taskId: string; stage: string; stageLabel: string } | null {
+  const match = filePath.match(/artifacts\/(task_[^/]+)\/(design|plan|split-proposal)/)
+  if (!match) return null
+  const stageLabels: Record<string, string> = { design: '设计方案', plan: '实施计划', 'split-proposal': '拆分方案' }
+  return { taskId: match[1], stage: match[2], stageLabel: stageLabels[match[2]] || match[2] }
 }
 
 export default function FileViewer({ filePath, language }: FileViewerProps) {
   const [fileInfo, setFileInfo] = useState<FileInfo | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const selectTask = useUiStore((s) => s.selectTask)
+  const setRightTab = useUiStore((s) => s.setRightTab)
 
   useEffect(() => {
     if (!filePath) return
@@ -92,12 +104,14 @@ export default function FileViewer({ filePath, language }: FileViewerProps) {
   const breadcrumbs = pathBreadcrumbs(filePath)
   const langTag = language || getLanguageTag(filePath)
   const isMarkdown = filePath.endsWith('.md') || filePath.endsWith('.mdx')
+  const artifactInfo = parseArtifactPath(filePath)
+  const artifactTask = useTaskStore((s) => artifactInfo ? s.tasks.find((t) => t.id === artifactInfo.taskId) : undefined)
 
   if (loading) {
     return (
       <div className="flex flex-col h-full">
-        <div className="px-4 py-3 border-b border-gray-800">
-          <div className="h-4 w-48 bg-gray-800 rounded animate-pulse" />
+        <div className="px-4 py-3 border-b border-gray-200">
+          <div className="h-4 w-48 bg-gray-100 rounded animate-pulse" />
         </div>
         <div className="flex-1 flex items-center justify-center">
           <span className="text-sm text-gray-500 animate-pulse">加载中...</span>
@@ -109,13 +123,13 @@ export default function FileViewer({ filePath, language }: FileViewerProps) {
   if (error) {
     return (
       <div className="flex flex-col h-full">
-        <div className="px-4 py-3 border-b border-gray-800">
+        <div className="px-4 py-3 border-b border-gray-200">
           <span className="text-xs text-gray-500 font-mono">{filePath}</span>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-sm text-red-400 mb-1">加载失败</p>
-            <p className="text-xs text-gray-600">{error}</p>
+            <p className="text-sm text-red-600 mb-1">加载失败</p>
+            <p className="text-xs text-gray-400">{error}</p>
           </div>
         </div>
       </div>
@@ -125,24 +139,42 @@ export default function FileViewer({ filePath, language }: FileViewerProps) {
   return (
     <div className="flex flex-col h-full">
       {/* File path breadcrumb + metadata */}
-      <div className="px-4 py-2.5 border-b border-gray-800 shrink-0">
+      <div className="px-4 py-2.5 border-b border-gray-200 shrink-0">
         <div className="flex items-center gap-1 text-xs text-gray-500 font-mono mb-1 overflow-x-auto">
           {breadcrumbs.map((seg, i) => (
             <span key={i} className="flex items-center gap-1 shrink-0">
-              {i > 0 && <span className="text-gray-700">/</span>}
-              <span className={i === breadcrumbs.length - 1 ? 'text-gray-300' : ''}>{seg}</span>
+              {i > 0 && <span className="text-gray-300">/</span>}
+              <span className={i === breadcrumbs.length - 1 ? 'text-gray-700' : ''}>{seg}</span>
             </span>
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-300">
             {langTag}
           </span>
           {fileInfo && (
-            <span className="text-[10px] text-gray-600">{formatSize(fileInfo.size)}</span>
+            <span className="text-[10px] text-gray-400">{formatSize(fileInfo.size)}</span>
           )}
         </div>
       </div>
+
+      {/* Artifact context bar */}
+      {artifactInfo && artifactTask && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 shrink-0">
+          <span className="text-xs text-amber-700 font-medium truncate flex-1">
+            {artifactInfo.stageLabel} — {artifactTask.title}
+          </span>
+          <button
+            onClick={() => {
+              selectTask(artifactInfo.taskId)
+              setRightTab('issues')
+            }}
+            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-medium cursor-pointer shrink-0"
+          >
+            💬 提 Issue
+          </button>
+        </div>
+      )}
 
       {/* File content */}
       {fileInfo ? (
@@ -150,14 +182,14 @@ export default function FileViewer({ filePath, language }: FileViewerProps) {
           {isMarkdown ? (
             <MarkdownPreview content={fileInfo.content} />
           ) : (
-            <pre className="text-xs font-mono text-gray-300 p-4 leading-relaxed whitespace-pre-wrap break-all">
+            <pre className="text-xs font-mono text-gray-700 p-4 leading-relaxed whitespace-pre-wrap break-all">
               {fileInfo.content}
             </pre>
           )}
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center">
-          <span className="text-sm text-gray-600">选择一个文件查看内容</span>
+          <span className="text-sm text-gray-400">选择一个文件查看内容</span>
         </div>
       )}
     </div>

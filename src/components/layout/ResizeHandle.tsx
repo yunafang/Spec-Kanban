@@ -33,9 +33,10 @@ export default function ResizeHandle({ onResize, direction = 'horizontal' }: Res
     return (
       <div
         onMouseDown={handleMouseDown}
-        className="h-1 cursor-row-resize hover:bg-indigo-500/30 transition-colors flex items-center justify-center group"
+        className="h-2 cursor-row-resize hover:bg-blue-100 active:bg-blue-200 transition-colors flex items-center justify-center group relative"
       >
-        <div className="h-0.5 w-8 bg-gray-700 group-hover:bg-indigo-400 rounded-full transition-colors" />
+        <div className="absolute inset-x-0 -top-1 -bottom-1" />
+        <div className="h-0.5 w-10 bg-gray-300 group-hover:bg-blue-400 rounded-full transition-colors" />
       </div>
     )
   }
@@ -43,9 +44,10 @@ export default function ResizeHandle({ onResize, direction = 'horizontal' }: Res
   return (
     <div
       onMouseDown={handleMouseDown}
-      className="w-1 cursor-col-resize hover:bg-indigo-500/30 transition-colors flex items-center justify-center group"
+      className="w-2 cursor-col-resize hover:bg-blue-100 active:bg-blue-200 transition-colors flex items-center justify-center group relative"
     >
-      <div className="w-0.5 h-8 bg-gray-700 group-hover:bg-indigo-400 rounded-full transition-colors" />
+      <div className="absolute inset-y-0 -left-1 -right-1" />
+      <div className="w-0.5 h-10 bg-gray-300 group-hover:bg-blue-400 rounded-full transition-colors" />
     </div>
   )
 }

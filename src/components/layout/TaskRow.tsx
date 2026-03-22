@@ -14,12 +14,12 @@ function timeAgo(dateStr: string | null): string {
 
 // Status badge colors
 const statusConfig: Record<string, { label: string; classes: string }> = {
-  inbox: { label: '排队', classes: 'bg-gray-700 text-gray-300' },
-  brainstorm: { label: '设计中', classes: 'bg-amber-500/20 text-amber-400' },
-  planning: { label: '规划中', classes: 'bg-indigo-500/20 text-indigo-400' },
-  executing: { label: '执行中', classes: 'bg-emerald-500/20 text-emerald-400' },
-  needs_human: { label: '需人工', classes: 'bg-red-500/20 text-red-400' },
-  done: { label: '已完成', classes: 'bg-cyan-500/20 text-cyan-400' },
+  inbox: { label: '排队', classes: 'bg-gray-200 text-gray-600' },
+  brainstorm: { label: '设计中', classes: 'bg-amber-100 text-amber-700' },
+  planning: { label: '规划中', classes: 'bg-blue-100 text-blue-700' },
+  executing: { label: '执行中', classes: 'bg-green-100 text-green-700' },
+  needs_human: { label: '需人工', classes: 'bg-red-100 text-red-700' },
+  done: { label: '已完成', classes: 'bg-purple-100 text-purple-700' },
 }
 
 interface TaskRowProps {
@@ -60,20 +60,20 @@ export default function TaskRow({ task, isSelected, onSelect }: TaskRowProps) {
   return (
     <div
       onClick={onSelect}
-      className={`grid grid-cols-[1fr_100px_120px_60px_70px] gap-2 px-4 py-2.5 border-b border-gray-800/50 cursor-pointer transition-colors ${
-        isSelected ? 'bg-indigo-500/10' : 'hover:bg-gray-800/50'
+      className={`grid grid-cols-[1fr_100px_120px_60px_70px] gap-2 px-4 py-2.5 border-b border-gray-200 cursor-pointer transition-colors ${
+        isSelected ? 'bg-blue-50' : 'hover:bg-gray-100'
       } ${task.status === 'done' ? 'opacity-50' : ''}`}
     >
       {/* Task column */}
       <div className="min-w-0">
-        <div className="text-sm font-semibold text-gray-200 truncate">
+        <div className="text-sm font-semibold text-gray-800 truncate">
           {task.title}
         </div>
         <div className="text-xs text-gray-500 truncate">{task.description}</div>
       </div>
 
       {/* Skill column */}
-      <div className="flex items-center gap-1.5 text-xs text-gray-400">
+      <div className="flex items-center gap-1.5 text-xs text-gray-500">
         <span>{skill.icon}</span>
         <span className="truncate">{skill.name}</span>
       </div>
@@ -81,11 +81,11 @@ export default function TaskRow({ task, isSelected, onSelect }: TaskRowProps) {
       {/* Stage column: dots */}
       <div className="flex items-center gap-1">
         {stages.map((stage, i) => {
-          let dotColor = 'bg-gray-600' // future
+          let dotColor = 'bg-gray-300' // future
           if (i < currentStageIndex) {
-            dotColor = 'bg-emerald-400' // completed
+            dotColor = 'bg-green-400' // completed
           } else if (i === currentStageIndex) {
-            dotColor = isNeedsHuman ? 'bg-amber-400' : 'bg-indigo-400' // current
+            dotColor = isNeedsHuman ? 'bg-amber-400' : 'bg-blue-400' // current
           }
           return (
             <span

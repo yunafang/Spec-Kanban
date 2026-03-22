@@ -34,13 +34,13 @@ export default function KanbanCard({ task, isSelected, onSelect }: KanbanCardPro
       onClick={onSelect}
       className={`rounded-lg p-2.5 cursor-pointer transition-all border ${
         isSelected
-          ? 'border-indigo-500/50 bg-indigo-500/10 shadow-lg shadow-indigo-500/5'
-          : 'border-gray-800 bg-gray-900/80 hover:border-gray-700 hover:bg-gray-800/80'
+          ? 'border-blue-300 bg-blue-50 shadow-lg shadow-blue-500/10'
+          : 'border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50'
       }`}
     >
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold text-gray-200 truncate">{task.title}</div>
+          <div className="text-xs font-semibold text-gray-800 truncate">{task.title}</div>
           {task.description && (
             <div className="text-[10px] text-gray-500 mt-0.5 line-clamp-1">{task.description}</div>
           )}
@@ -49,7 +49,7 @@ export default function KanbanCard({ task, isSelected, onSelect }: KanbanCardPro
 
       {/* Progress bar for executing tasks */}
       {task.progress.total > 0 && task.status === 'executing' && (
-        <div className="mt-2 bg-gray-800 rounded-full h-1">
+        <div className="mt-2 bg-gray-200 rounded-full h-1">
           <div
             className="bg-emerald-500 rounded-full h-1 transition-all"
             style={{ width: `${(task.progress.current / task.progress.total) * 100}%` }}
@@ -59,17 +59,17 @@ export default function KanbanCard({ task, isSelected, onSelect }: KanbanCardPro
 
       {/* Footer: skill + time + human action */}
       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-        <span className="text-[9px] text-gray-600">{skill.icon}</span>
+        <span className="text-[9px] text-gray-400">{skill.icon}</span>
         {task.humanAction && (
-          <span className="text-[9px] px-1 py-0.5 bg-amber-500/20 text-amber-400 rounded">
+          <span className="text-[9px] px-1 py-0.5 bg-amber-100 text-amber-600 rounded">
             {humanLabels[task.humanAction] || task.humanAction}
           </span>
         )}
         {task.version > 1 && (
-          <span className="text-[9px] text-gray-600">v{task.version}</span>
+          <span className="text-[9px] text-gray-400">v{task.version}</span>
         )}
         {elapsed && (
-          <span className="text-[9px] text-gray-600 ml-auto">{elapsed}</span>
+          <span className="text-[9px] text-gray-400 ml-auto">{elapsed}</span>
         )}
       </div>
     </div>

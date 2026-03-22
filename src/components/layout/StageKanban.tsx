@@ -6,12 +6,12 @@ import type { Task, TaskStatus } from '@/types'
 import { useEffect, useState } from 'react'
 
 const columns: { key: TaskStatus | 'waiting'; label: string; icon: string; color: string; statuses: TaskStatus[] }[] = [
-  { key: 'inbox', label: '队列', icon: '📥', color: 'border-slate-500', statuses: ['inbox'] },
-  { key: 'brainstorm', label: 'Brainstorm', icon: '💡', color: 'border-amber-500', statuses: ['brainstorm'] },
-  { key: 'planning', label: 'Planning', icon: '📝', color: 'border-indigo-500', statuses: ['planning'] },
-  { key: 'waiting', label: '需人工', icon: '🖐️', color: 'border-red-500', statuses: ['needs_human'] },
-  { key: 'executing', label: 'Executing', icon: '🚀', color: 'border-emerald-500', statuses: ['executing'] },
-  { key: 'done' as TaskStatus, label: '完成', icon: '✅', color: 'border-cyan-500', statuses: ['done'] },
+  { key: 'inbox', label: '队列', icon: '📥', color: 'border-gray-400', statuses: ['inbox'] },
+  { key: 'brainstorm', label: 'Brainstorm', icon: '💡', color: 'border-amber-400', statuses: ['brainstorm'] },
+  { key: 'planning', label: 'Planning', icon: '📝', color: 'border-blue-400', statuses: ['planning'] },
+  { key: 'waiting', label: '需人工', icon: '🖐️', color: 'border-red-400', statuses: ['needs_human'] },
+  { key: 'executing', label: 'Executing', icon: '🚀', color: 'border-green-400', statuses: ['executing'] },
+  { key: 'done' as TaskStatus, label: '完成', icon: '✅', color: 'border-purple-400', statuses: ['done'] },
 ]
 
 export default function StageKanban() {
@@ -52,9 +52,9 @@ export default function StageKanban() {
             {/* Column header */}
             <div className={`text-xs font-semibold mb-2 pb-1.5 border-b-2 ${col.color} flex items-center gap-1.5 px-1 shrink-0`}>
               <span>{col.icon}</span>
-              <span className="text-gray-300">{col.label}</span>
+              <span className="text-gray-700">{col.label}</span>
               {colTasks.length > 0 && (
-                <span className="text-gray-600 font-normal ml-auto">{colTasks.length}</span>
+                <span className="text-gray-400 font-normal ml-auto">{colTasks.length}</span>
               )}
             </div>
             {/* Cards */}

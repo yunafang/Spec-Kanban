@@ -1,11 +1,19 @@
 import { create } from 'zustand'
 
+export interface ArtifactPreview {
+  content: string
+  title: string
+  taskId: string
+  stage: string
+}
+
 interface UiState {
   sidebarWidth: number
   rightPanelWidth: number
   terminalHeight: number
   selectedTaskId: string | null
   selectedFile: string | null
+  previewArtifact: ArtifactPreview | null
   rightTab: 'detail' | 'file' | 'issues'
   bottomMode: 'new' | 'fix' | 'refactor' | 'upload'
   setSidebarWidth: (w: number) => void
@@ -13,6 +21,7 @@ interface UiState {
   setTerminalHeight: (h: number) => void
   selectTask: (id: string | null) => void
   selectFile: (path: string | null) => void
+  setPreviewArtifact: (artifact: ArtifactPreview | null) => void
   setRightTab: (tab: 'detail' | 'file' | 'issues') => void
   setBottomMode: (mode: 'new' | 'fix' | 'refactor' | 'upload') => void
 }
@@ -23,13 +32,15 @@ export const useUiStore = create<UiState>((set) => ({
   terminalHeight: 200,
   selectedTaskId: null,
   selectedFile: null,
+  previewArtifact: null,
   rightTab: 'detail',
   bottomMode: 'new',
   setSidebarWidth: (w) => set({ sidebarWidth: Math.max(180, w) }),
   setRightPanelWidth: (w) => set({ rightPanelWidth: Math.max(280, w) }),
   setTerminalHeight: (h) => set({ terminalHeight: Math.max(80, Math.min(600, h)) }),
   selectTask: (id) => set({ selectedTaskId: id, rightTab: 'detail' }),
-  selectFile: (path) => set({ selectedFile: path }),
+  selectFile: (path) => set({ selectedFile: path, previewArtifact: null }),
+  setPreviewArtifact: (artifact) => set({ previewArtifact: artifact, selectedFile: null }),
   setRightTab: (tab) => set({ rightTab: tab }),
   setBottomMode: (mode) => set({ bottomMode: mode }),
 }))

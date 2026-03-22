@@ -25,20 +25,20 @@ export default function IssueForm({ taskId, defaultStage, onSubmit }: IssueFormP
   }
 
   return (
-    <div className="p-3 border-t border-gray-800">
-      <div className="text-xs text-gray-400 font-semibold mb-2">新建 Issue</div>
+    <div className="p-3 border-t border-gray-200">
+      <div className="text-xs text-gray-500 font-semibold mb-2">新建 Issue</div>
       <select value={stage} onChange={e => setStage(e.target.value)}
-        className="w-full bg-gray-800 rounded px-2 py-1 text-xs mb-2 outline-none">
+        className="w-full bg-gray-100 rounded px-2 py-1 text-xs mb-2 outline-none">
         <option value="brainstorm">💡 Brainstorm</option>
         <option value="planning">📝 Planning</option>
         <option value="executing">🚀 Executing</option>
       </select>
       <textarea value={content} onChange={e => setContent(e.target.value)}
         placeholder="描述问题..."
-        className="w-full bg-gray-800 rounded px-2 py-1.5 text-sm h-20 resize-none outline-none focus:ring-1 focus:ring-indigo-500 mb-2"
+        className="w-full bg-gray-100 rounded px-2 py-1.5 text-sm h-20 resize-none outline-none focus:ring-1 focus:ring-blue-500 mb-2"
       />
       <button onClick={handleSubmit} disabled={!content.trim() || submitting}
-        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded text-xs font-medium disabled:opacity-50 cursor-pointer">
+        className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xs font-medium disabled:opacity-50 cursor-pointer">
         提交 Issue
       </button>
     </div>

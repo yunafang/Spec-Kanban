@@ -10,46 +10,86 @@ import type { Task } from '../src/types/index.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-/** Extract readable content from Claude Code CLI JSON output */
+/** Extract readable content from Claude Code CLI JSON output (supports both json and stream-json) */
 function extractClaudeOutput(raw: string): { sessionId: string | null; content: string; isSplit: boolean } {
+  // Try single JSON first (non-stream mode)
   try {
     const json = JSON.parse(raw)
-    const sessionId = json.session_id || json.sessionId || null
-
-    // The actual output is in json.result (string)
-    let text = json.result || ''
-
-    // Try to extract JSON from markdown code blocks in the result
-    const codeBlockMatch = text.match(/```json\s*\n?([\s\S]*?)```/)
-    if (codeBlockMatch) {
-      try {
-        const inner = JSON.parse(codeBlockMatch[1])
-        if (inner.type === 'split' && inner.subtasks) {
-          return { sessionId, content: JSON.stringify(inner, null, 2), isSplit: true }
-        }
-        if (inner.type === 'design' && inner.design) {
-          return { sessionId, content: inner.design, isSplit: false }
-        }
-        if (inner.type === 'plan' && inner.plan) {
-          return { sessionId, content: inner.plan, isSplit: false }
-        }
-      } catch { /* not valid JSON inside code block */ }
-    }
-
-    // Clean up: remove trailing questions like "需要我直接开始实施吗？"
-    text = text.replace(/```json\s*\n?[\s\S]*?```\s*/g, '').trim()
-
-    // If there's still useful text after removing code blocks
-    if (text.length > 10) {
-      return { sessionId, content: text, isSplit: false }
-    }
-
-    // Fallback: return the result as-is
-    return { sessionId, content: json.result || raw, isSplit: false }
+    return extractFromResultJson(json, raw)
   } catch {
-    // Not JSON at all — return raw
-    return { sessionId: null, content: raw, isSplit: false }
+    // Not single JSON — likely stream-json (multi-line), find the result line
   }
+
+  // Stream-json: each line is a separate JSON object, find the last result
+  const lines = raw.split('\n')
+  let sessionId: string | null = null
+  let resultJson: any = null
+
+  for (const line of lines) {
+    if (!line.trim()) continue
+    try {
+      const json = JSON.parse(line)
+      // Capture session_id from any line
+      if (json.session_id || json.sessionId) {
+        sessionId = json.session_id || json.sessionId
+      }
+      // Look for result type or result field
+      if (json.type === 'result' || json.result) {
+        resultJson = json
+      }
+    } catch { /* skip non-JSON lines */ }
+  }
+
+  if (resultJson) {
+    const extracted = extractFromResultJson(resultJson, raw)
+    return { ...extracted, sessionId: extracted.sessionId || sessionId }
+  }
+
+  // Fallback: collect all assistant text content from stream
+  const textParts: string[] = []
+  for (const line of lines) {
+    try {
+      const json = JSON.parse(line)
+      if (json.type === 'assistant' && json.message?.content) {
+        for (const block of json.message.content) {
+          if (block.type === 'text') textParts.push(block.text)
+        }
+      }
+    } catch {}
+  }
+  if (textParts.length > 0) {
+    return { sessionId, content: textParts.join('\n'), isSplit: false }
+  }
+
+  return { sessionId: null, content: raw, isSplit: false }
+}
+
+function extractFromResultJson(json: any, raw: string): { sessionId: string | null; content: string; isSplit: boolean } {
+  const sessionId = json.session_id || json.sessionId || null
+  let text = json.result || ''
+
+  const codeBlockMatch = text.match(/```json\s*\n?([\s\S]*?)```/)
+  if (codeBlockMatch) {
+    try {
+      const inner = JSON.parse(codeBlockMatch[1])
+      if (inner.type === 'split' && inner.subtasks) {
+        return { sessionId, content: JSON.stringify(inner, null, 2), isSplit: true }
+      }
+      if (inner.type === 'design' && inner.design) {
+        return { sessionId, content: inner.design, isSplit: false }
+      }
+      if (inner.type === 'plan' && inner.plan) {
+        return { sessionId, content: inner.plan, isSplit: false }
+      }
+    } catch { /* not valid JSON inside code block */ }
+  }
+
+  text = text.replace(/```json\s*\n?[\s\S]*?```\s*/g, '').trim()
+  if (text.length > 10) {
+    return { sessionId, content: text, isSplit: false }
+  }
+
+  return { sessionId, content: json.result || raw, isSplit: false }
 }
 
 function getProjectDir(): string | null {
@@ -139,7 +179,7 @@ function startBrainstorm(task: Task, projectDir: string) {
       updateTask(task.id, { status: 'needs_human', humanAction: 'error' })
       processQueue()
     }
-  }, { timeoutMs: config.timeoutMinutes * 60 * 1000 })
+  }, { stream: true, timeoutMs: config.timeoutMinutes * 60 * 1000 })
 }
 
 export async function advanceTask(taskId: string, action: string, feedback?: string) {
@@ -165,7 +205,7 @@ export async function advanceTask(taskId: string, action: string, feedback?: str
           appendLog(taskId, `\n[ERROR] ${error.message}`)
           updateTask(taskId, { status: 'needs_human', humanAction: 'error' })
         }
-      }, { resume: true, timeoutMs: config.timeoutMinutes * 60 * 1000 })
+      }, { resume: true, stream: true, timeoutMs: config.timeoutMinutes * 60 * 1000 })
       break
 
     case 'confirm_plan': {

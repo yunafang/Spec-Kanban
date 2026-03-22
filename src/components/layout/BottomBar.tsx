@@ -68,17 +68,17 @@ export default function BottomBar() {
   }
 
   return (
-    <footer className="h-14 border-t border-gray-800 bg-gray-900/80 shrink-0 flex items-center gap-2 px-3">
+    <footer className="h-14 border-t border-gray-200 bg-[#f6f8fa] shrink-0 flex items-center gap-2 px-3">
       {/* Mode selector */}
-      <div className="flex rounded-lg overflow-hidden border border-gray-700 shrink-0">
+      <div className="flex rounded-lg overflow-hidden border border-gray-300 shrink-0">
         {modes.map((mode) => (
           <button
             key={mode.key}
             onClick={() => setBottomMode(mode.key)}
             className={`px-2.5 py-1 text-xs whitespace-nowrap transition-colors ${
               bottomMode === mode.key
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-500 hover:text-gray-800 hover:bg-gray-200'
             }`}
           >
             {mode.label}
@@ -95,7 +95,7 @@ export default function BottomBar() {
         onClick={handleInputClick}
         placeholder={bottomMode === 'upload' ? '点击此处上传文件...' : '描述你的需求...'}
         readOnly={bottomMode === 'upload'}
-        className="flex-1 h-9 px-3 text-sm bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
+        className="flex-1 h-9 px-3 text-sm bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
       />
 
       {/* Hidden file input for upload mode */}
@@ -110,7 +110,7 @@ export default function BottomBar() {
       <button
         onClick={handleSubmit}
         disabled={!input.trim() || submitting}
-        className="h-9 px-4 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+        className="h-9 px-4 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
       >
         {submitting ? '...' : '发送'}
       </button>

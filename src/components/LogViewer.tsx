@@ -134,18 +134,18 @@ export default function LogViewer({ taskId }: LogViewerProps) {
     }
   }, [raw, showRaw])
 
-  if (!raw) return <p className="text-xs text-gray-600">暂无日志</p>
+  if (!raw) return <p className="text-xs text-gray-400">暂无日志</p>
 
   const blocks = parseLog(raw)
 
   return (
     <div>
       {/* Tab switcher */}
-      <div className="flex items-center gap-1 mb-2 bg-gray-800 rounded-lg p-0.5 w-fit">
+      <div className="flex items-center gap-1 mb-2 bg-gray-100 rounded-lg p-0.5 w-fit">
         <button
           onClick={() => setShowRaw(false)}
           className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors ${
-            !showRaw ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-gray-200'
+            !showRaw ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-800'
           }`}
         >
           📋 可读日志
@@ -153,7 +153,7 @@ export default function LogViewer({ taskId }: LogViewerProps) {
         <button
           onClick={() => setShowRaw(true)}
           className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors ${
-            showRaw ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-gray-200'
+            showRaw ? 'bg-gray-500 text-white' : 'text-gray-500 hover:text-gray-800'
           }`}
         >
           {'{ }'} JSON 日志
@@ -162,30 +162,30 @@ export default function LogViewer({ taskId }: LogViewerProps) {
 
       <div
         ref={containerRef}
-        className="bg-gray-950 rounded-lg p-4 max-h-80 overflow-y-auto"
+        className="bg-[#f6f8fa] rounded-lg p-4 max-h-80 overflow-y-auto"
       >
         {showRaw ? (
-          <pre className="text-xs font-mono text-green-400/80 whitespace-pre-wrap leading-relaxed">{raw}</pre>
+          <pre className="text-xs font-mono text-gray-700 whitespace-pre-wrap leading-relaxed">{raw}</pre>
         ) : blocks.length === 0 ? (
-          <p className="text-xs text-gray-600">正在处理中...</p>
+          <p className="text-xs text-gray-400">正在处理中...</p>
         ) : (
           <div className="space-y-3">
             {blocks.map((block, i) => (
               <div key={i}>
                 {block.type === 'summary' && (
-                  <div className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed bg-gray-900 rounded-lg p-3 border-l-2 border-indigo-500">
+                  <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed bg-white rounded-lg p-3 border-l-2 border-blue-400">
                     {block.content}
                   </div>
                 )}
                 {block.type === 'text' && (
-                  <div className="text-xs text-gray-400 whitespace-pre-wrap">{block.content}</div>
+                  <div className="text-xs text-gray-500 whitespace-pre-wrap">{block.content}</div>
                 )}
                 {block.type === 'error' && (
-                  <div className="text-xs text-red-400 bg-red-500/10 rounded px-2 py-1">{block.content}</div>
+                  <div className="text-xs text-red-600 bg-red-50 rounded px-2 py-1">{block.content}</div>
                 )}
                 {block.type === 'meta' && (
-                  <div className="text-[10px] text-gray-600 flex items-center gap-1">
-                    <span className="w-1 h-1 bg-gray-700 rounded-full" />
+                  <div className="text-[10px] text-gray-400 flex items-center gap-1">
+                    <span className="w-1 h-1 bg-gray-300 rounded-full" />
                     {block.content}
                   </div>
                 )}

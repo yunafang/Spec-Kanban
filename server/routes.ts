@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import { readTasks, writeTasks, readConfig, writeConfig } from './store.js'
 import { broadcast } from './ws.js'
 import { advanceTask, processQueue } from './scheduler.js'
+import { hasActivePty } from './claude-runner.js'
 import type { Task } from '../src/types/index.js'
 
 const upload = multer({ dest: '/tmp/spec-kanban-uploads/', limits: { fileSize: 10 * 1024 * 1024 } })
@@ -151,6 +152,11 @@ router.get('/api/artifacts/:artifactPath', (req, res) => {
 router.post('/api/scheduler/process', (_req, res) => {
   processQueue()
   res.json({ ok: true })
+})
+
+// GET /api/tasks/:id/pty-status — check if task has an active PTY process
+router.get('/api/tasks/:id/pty-status', (req, res) => {
+  res.json({ active: hasActivePty(req.params.id) })
 })
 
 // GET /api/tasks/:id/log

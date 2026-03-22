@@ -39,15 +39,15 @@ export default function RightPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Tab bar */}
-      <div className="flex border-b border-gray-800 shrink-0">
+      <div className="flex border-b border-gray-200 shrink-0">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setRightTab(tab.key)}
             className={`flex-1 px-2 py-2 text-xs font-medium transition-colors relative cursor-pointer ${
               rightTab === tab.key
-                ? 'text-gray-100 border-b-2 border-indigo-500 bg-gray-800/30'
-                : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/20'
+                ? 'text-gray-900 border-b-2 border-blue-500 bg-blue-50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
             {tab.label}
@@ -66,7 +66,7 @@ export default function RightPanel() {
           selectedTaskId ? (
             <TaskDetail taskId={selectedTaskId} />
           ) : (
-            <div className="flex items-center justify-center h-full text-sm text-gray-600">
+            <div className="flex items-center justify-center h-full text-sm text-gray-400">
               选择一个任务查看详情
             </div>
           )
@@ -76,7 +76,7 @@ export default function RightPanel() {
           selectedTaskId ? (
             <IssuesTab taskId={selectedTaskId} />
           ) : (
-            <div className="flex items-center justify-center h-full text-sm text-gray-600">
+            <div className="flex items-center justify-center h-full text-sm text-gray-400">
               选择一个任务查看 Issues
             </div>
           )
